@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ICICI Prudential — Real Estate Fund Dashboard</title>
+<style>
+/* =====================================================================
+   IPRU REAL ESTATE FUND — EXECUTIVE DASHBOARD
+   Boardroom design system · warm neutral + gold · Playfair / Inter
+   =================================== ================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root{
+  /* Primary chart/data tokens
+     --brand-maroon = INK (charcoal primary) · --brand-orange = GOLD accent
+     (names kept so components inherit the palette without churn) */
+  --brand-maroon:   #E34234;   /* vermilion — primary series */
+  --brand-maroon-d: #C0392B;
+  --brand-orange:   #B8960C;   /* muted gold — single accent   */
+  --brand-orange-d: #9C7E08;
+
+  /* Per-asset colours are assigned dynamically in build_dashboard.py
+     (ASSET_PALETTE → window.DASH.assetColors), not via CSS variables. */
+
+  /* Data ramp — charcoal → gold → warm greys (two-tone discipline) */
+  --d1: #17181C;   /* ink        */
+  --d2: #B8960C;   /* gold       */
+  --d3: #8C8678;   /* warm grey  */
+  --d4: #C2BCAD;   /* light grey */
+  --d5: #56524A;   /* dark grey  */
+  --d6: #D0AE3A;   /* light gold */
+
+  /* Status — muted, sophisticated traffic lights */
+  --ok:      #4F7A52;
+  --warn:    #B8860B;
+  --danger:  #AE4A3C;
+  --info:    #4E6577;
+
+  --radius:   5px;
+  --radius-s: 4px;
+  --radius-l: 6px;
+
+  --font:  "Inter", system-ui, -apple-system, sans-serif;
+  --serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --mono:  "Inter", system-ui, sans-serif;   /* labels use Inter, tracked */
+
+  --gutter: 56px;
+  --maxw: 1440px;
+}
+
+/* ---------- LIGHT (warm boardroom) — default ---------- */
+:root, [data-theme="light"]{
+  --bg:        #F4F2EC;
+  --bg-grad-a: #F6F4EE;
+  --bg-grad-b: #EFEDE5;
+  --surface:   #FCFBF8;
+  --surface-2: #F4F2EB;
+  --surface-3: #EDEAE1;
+  --ink:       #17181C;
+  --ink-2:     #5C584E;
+  --ink-3:     #948F82;
+  --line:      #E2DDD1;
+  --line-2:    #ECE8DE;
+  --vacant:    #E0DBCE;
+  --cat-outsourcing: #E34234;
+  --shadow:    none;
+  --shadow-lg: 0 1px 2px rgba(30,25,15,.08), 0 18px 44px rgba(30,25,15,.12);
+  --grid:      rgba(60,55,40,.10);
+  --appbar-bg: rgba(252,251,248,.86);
+}
+
+/* ---------- DARK (charcoal command) ---------- */
+[data-theme="dark"]{
+  --bg:        #15171E;
+  --bg-grad-a: #181B23;
+  --bg-grad-b: #131520;
+  --surface:   #16181F;
+  --surface-2: #1B1E26;
+  --surface-3: #22252F;
+  --ink:       #F2F0E8;
+  --ink-2:     #C9C4B6;
+  --ink-3:     #948E7F;
+  --line:      rgba(255,255,255,.09);
+  --line-2:    rgba(255,255,255,.05);
+  --vacant:    #2A2D36;
+  --cat-outsourcing: #5E6373;
+  --shadow:    none;
+  --shadow-lg: 0 2px 8px rgba(0,0,0,.5), 0 24px 60px rgba(0,0,0,.55);
+  --grid:      rgba(255,250,235,.07);
+  --appbar-bg: rgba(15,17,23,.82);
+  --brand-maroon: #DAD5C8;   /* light ink for bars on dark */
+  --brand-orange: #C9A52A;   /* brighter gold */
+  --d1: #E2DDD0;
+  --d3: #8C8678;
+  --d4: #5E5A50;
+  --d5: #B4AE9F;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:var(--bg); }
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"cv05","ss01";
+}
+#root{ min-height:100%; }
+/* dark mode: light-on-dark text reads thin — nudge body weight up a step for legibility */
+[data-theme="dark"] body{ font-weight:500; }
+::selection{ background:color-mix(in srgb, var(--brand-orange) 26%, transparent); }
+
+*::-webkit-scrollbar{ width:9px; height:9px; }
+*::-webkit-scrollbar-thumb{ background:color-mix(in srgb,var(--ink-3) 38%, transparent); border-radius:20px; border:3px solid transparent; background-clip:padding-box; }
+*::-webkit-scrollbar-track{ background:transparent; }
+
+.mono{ font-family:var(--mono); }
+.serif{ font-family:var(--serif); }
+.tnum{ font-variant-numeric:tabular-nums; }
+.uplabel{ text-transform:uppercase; letter-spacing:.13em; font-size:11px; font-weight:500; color:var(--ink-3); }
+
+/* ============ APP FRAME ============ */
+.frame{ min-height:100vh; display:flex; flex-direction:column; }
+
+.masthead{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:stretch;
+  background:var(--appbar-bg); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+.masthead-brand{
+  display:flex; align-items:center; flex-shrink:0;
+  padding:8px 40px 8px var(--gutter);
+  border-right:1px solid var(--line);
+}
+.brand-logo{ height:90px; width:auto; display:block; border-radius:6px; flex-shrink:0; }
+[data-theme="dark"] .brand-logo{ box-shadow:0 0 0 1px rgba(255,255,255,.10), 0 1px 6px rgba(0,0,0,.35); }
+.masthead-bars{ flex:1; display:flex; flex-direction:column; min-width:0; }
+
+/* top control row */
+.appbar-row{
+  display:flex; align-items:center; gap:24px;
+  padding:0 var(--gutter); height:64px;
+  border-bottom:1px solid var(--line);
+}
+.wm-sub{ font-size:13px; font-weight:500; color:var(--ink-2); letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+.appbar-spacer{ flex:1; }
+
+/* tab navigation (PDF-style) — centered */
+.tabbar{
+  flex:1; display:flex; align-items:center; justify-content:center;
+  gap:2px; padding:0 var(--gutter); overflow-x:auto;
+}
+.tabbar::-webkit-scrollbar{ height:0; }
+.tab{
+  position:relative; border:none; background:none; cursor:pointer;
+  padding:15px 18px 14px; font-family:var(--font); font-size:13px; font-weight:500;
+  letter-spacing:.02em; color:var(--ink-2); white-space:nowrap; transition:color .18s;
+}
+.tab:hover{ color:var(--ink); }
+.tab.active{ color:var(--ink); }
+.tab.active::after{ content:""; position:absolute; left:18px; right:18px; bottom:-1px; height:2px; background:var(--brand-orange); }
+
+/* right-side controls */
+.ctrl-row{ display:flex; align-items:center; gap:14px; }
+.month-tag{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:500; }
+
+.seg{ display:flex; border:1px solid var(--line); border-radius:var(--radius-s); overflow:hidden; }
+.seg button{ border:none; background:none; font-family:var(--font); font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); padding:7px 12px; cursor:pointer; transition:.16s; }
+.seg button:hover{ color:var(--ink); }
+.seg button.on{ background:var(--ink); color:var(--surface); }
+
+.pill-select{ position:relative; }
+.pill{ display:flex; align-items:center; gap:9px; background:transparent; border:1px solid var(--line); border-radius:var(--radius-s); padding:7px 12px; cursor:pointer; font-size:12.5px; font-weight:500; color:var(--ink); transition:.16s; }
+.pill:hover{ border-color:var(--ink-3); }
+.dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+.dropdown{ position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:5px; min-width:210px; z-index:60; }
+.dd-item{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:var(--radius-s); cursor:pointer; font-size:12.5px; font-weight:500; color:var(--ink); }
+.dd-item:hover{ background:var(--surface-3); }
+.dd-item .chk{ margin-left:auto; color:var(--brand-orange); font-size:11px; }
+
+/* ============ CONTENT ============ */
+.content{ flex:1; padding:40px var(--gutter) 80px; max-width:var(--maxw); width:100%; margin:0 auto; }
+
+.page-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:34px; flex-wrap:wrap; }
+.page-kicker{ text-transform:uppercase; letter-spacing:.18em; font-size:11.5px; font-weight:500; color:var(--brand-orange); margin-bottom:11px; }
+.page-title{ font-family:var(--serif); font-size:32px; font-weight:600; letter-spacing:-.02em; line-height:1; }
+.page-meta{ text-align:right; font-size:12px; color:var(--ink-2); line-height:1.6; }
+.page-meta b{ color:var(--ink); font-weight:600; }
+
+/* ============ GRID / PANELS ============ */
+.grid{ display:grid; gap:22px; }
+.panel{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+.panel-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:22px 24px 0; }
+.panel-title{ font-family:var(--serif); font-size:17px; font-weight:600; letter-spacing:-.01em; }
+.panel-sub{ text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; font-weight:500; color:var(--ink-3); margin-top:7px; }
+.panel-body{ padding:20px 24px 24px; }
+
+.section-label{ display:flex; align-items:center; gap:11px; margin:38px 0 16px; }
+.section-label .bar{ width:18px; height:2px; background:var(--brand-orange); }
+.section-label h3{ margin:0; text-transform:uppercase; letter-spacing:.16em; font-size:11px; color:var(--ink-2); font-weight:600; }
+
+/* ============ KPI ============ */
+.kpi{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px 22px 20px; }
+.kpi-label{ text-transform:uppercase; letter-spacing:.13em; font-size:11px; font-weight:500; color:var(--ink-3); display:flex; align-items:center; gap:7px; }
+.kpi-value{ font-family:var(--serif); font-size:clamp(24px,2.1vw,33px); font-weight:600; letter-spacing:-.02em; margin-top:14px; line-height:1; white-space:nowrap; }
+.kpi-value .unit{ font-size:.46em; font-weight:500; color:var(--ink-2); margin-left:3px; font-family:var(--font); }
+.kpi-foot{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line-2); font-size:12.5px; color:var(--ink-2); display:flex; align-items:center; gap:7px; }
+.trend{ font-weight:600; font-size:11.5px; display:inline-flex; align-items:center; gap:3px; }
+.trend.up{ color:var(--ok); }
+.trend.down{ color:var(--danger); }
+
+/* ============ TABLES ============ */
+.tbl-wrap{ overflow-x:auto; }
+table.tbl{ width:100%; border-collapse:collapse; font-size:13px; }
+table.tbl th{ text-align:left; text-transform:uppercase; letter-spacing:.1em; font-size:10.5px; color:var(--ink-3); font-weight:600; padding:11px 16px; border-bottom:1px solid var(--line); white-space:nowrap; cursor:pointer; user-select:none; }
+table.tbl th.no-sort{ cursor:default; }
+table.tbl th .sort-ar{ opacity:.35; margin-left:5px; font-size:8px; }
+table.tbl th.sorted .sort-ar{ opacity:1; color:var(--brand-orange); }
+table.tbl td{ padding:13px 16px; border-bottom:1px solid var(--line-2); color:var(--ink); vertical-align:middle; }
+table.tbl tbody tr{ transition:background .14s; }
+table.tbl tbody tr:hover{ background:var(--surface-2); }
+table.tbl td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+table.tbl th.num{ text-align:right; }
+table.tbl tr.total-row td{ font-weight:600; border-top:1px solid var(--line); border-bottom:none; }
+
+/* badges */
+.badge{ display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:var(--radius-s); white-space:nowrap; }
+.badge .bdot{ width:5px; height:5px; border-radius:50%; }
+.badge.ok{ background:color-mix(in srgb,var(--ok) 13%,transparent); color:var(--ok); }
+.badge.warn{ background:color-mix(in srgb,var(--warn) 15%,transparent); color:var(--warn); }
+.badge.danger{ background:color-mix(in srgb,var(--danger) 13%,transparent); color:var(--danger); }
+.badge.info{ background:color-mix(in srgb,var(--info) 13%,transparent); color:var(--info); }
+.badge.muted{ background:var(--surface-3); color:var(--ink-3); }
+
+.achip{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:500; }
+.achip .dot{ width:8px; height:8px; border-radius:2px; }
+
+.search{ display:flex; align-items:center; gap:8px; background:transparent; border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 12px; }
+.search input{ border:none; background:none; outline:none; font-family:var(--font); font-size:12.5px; color:var(--ink); width:180px; }
+.search input::placeholder{ color:var(--ink-3); }
+
+/* tooltip */
+.chart-tip{ position:fixed; pointer-events:none; z-index:200; background:var(--ink); color:var(--bg); border-radius:var(--radius-s); padding:10px 12px; font-size:11.5px; box-shadow:var(--shadow-lg); transform:translate(-50%,-118%); white-space:nowrap; opacity:0; transition:opacity .12s; }
+[data-theme="dark"] .chart-tip{ border:1px solid var(--line); }
+.chart-tip .tip-row{ display:flex; align-items:center; gap:8px; }
+.chart-tip .tip-k{ text-transform:uppercase; letter-spacing:.1em; font-size:9.5px; opacity:.65; }
+.chart-tip b{ font-variant-numeric:tabular-nums; }
+.chart-tip .tdot{ width:7px;height:7px;border-radius:2px; }
+
+.legend{ display:flex; flex-wrap:wrap; gap:16px; }
+.legend .li{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--ink-2); font-weight:500; text-transform:uppercase; letter-spacing:.06em; }
+.legend .li .sw{ width:10px; height:10px; border-radius:2px; }
+
+.fade-in{ opacity:1; }
+.muted{ color:var(--ink-3); }
+.divider{ height:1px; background:var(--line); margin:0; border:none; }
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Data (plain JS, no Babel needed) -->
+<script>
+/* =====================================================================
+   DASHBOARD DATA  —  single source of truth
+   ---------------------------------------------------------------------
+   This is the ONLY file your backend / Claude Code needs to populate.
+   Every number rendered in the UI comes from here. Shape it from a
+   dataframe, a JSON API, anything — just keep the keys the same.
+
+   Money is stored as numbers in ₹ Crore (Cr).  Area in million sq.ft (M)
+   unless a field name says otherwise (e.g. *_sft = absolute square feet).
+   ===================================================================== */
+window.DASH = {"meta": {"fund": "IPru Real Estate Fund — SPV I", "reportMonth": "Jan-24", "months": ["Aug-23", "Sep-23", "Oct-23", "Nov-23", "Dec-23", "Jan-24"], "currency": "₹"}, "assets": [{"id": "green", "name": "Avenir Business Park", "city": "Mumbai, Maharashtra", "leasable": 0.82, "leased": 0.76, "vacant": 0.06, "occupancy": 92.7, "monthlyRent": 10.3, "wale": 3.2}, {"id": "blue", "name": "Prestige Tech Cloud", "city": "Bengaluru, Karnataka", "leasable": 1.15, "leased": 1.09, "vacant": 0.06, "occupancy": 94.8, "monthlyRent": 12.8, "wale": 4.1}, {"id": "white", "name": "Mindspace Juinagar", "city": "Navi Mumbai, Maharashtra", "leasable": 0.67, "leased": 0.6, "vacant": 0.07, "occupancy": 89.6, "monthlyRent": 7.3, "wale": 3.7}, {"id": "yellow", "name": "Embassy Manyata North", "city": "Bengaluru, Karnataka", "leasable": 0.94, "leased": 0.88, "vacant": 0.06, "occupancy": 93.6, "monthlyRent": 9.9, "wale": 3.9}, {"id": "red", "name": "DLF IT Park Chennai", "city": "Chennai, Tamil Nadu", "leasable": 0.73, "leased": 0.65, "vacant": 0.08, "occupancy": 89.0, "monthlyRent": 6.2, "wale": 2.8}, {"id": "orange", "name": "Candor TechSpace Noida", "city": "Noida, Uttar Pradesh", "leasable": 0.58, "leased": 0.5, "vacant": 0.08, "occupancy": 86.2, "monthlyRent": 4.8, "wale": 2.5}, {"id": "violet", "name": "DLF Cyber City Extension", "city": "Gurugram, Haryana", "leasable": 0.78, "leased": 0.74, "vacant": 0.04, "occupancy": 94.9, "monthlyRent": 8.4, "wale": 3.5}, {"id": "indigo", "name": "Nirlon Knowledge Park", "city": "Navi Mumbai, Maharashtra", "leasable": 0.55, "leased": 0.48, "vacant": 0.07, "occupancy": 87.3, "monthlyRent": 5.6, "wale": 2.9}, {"id": "silver", "name": "Ecospace Business Park", "city": "Kolkata, West Bengal", "leasable": 0.43, "leased": 0.38, "vacant": 0.05, "occupancy": 88.4, "monthlyRent": 3.1, "wale": 3.1}, {"id": "gold", "name": "GIFT One Tower", "city": "Gandhinagar, Gujarat", "leasable": 0.39, "leased": 0.36, "vacant": 0.03, "occupancy": 92.3, "monthlyRent": 3.8, "wale": 4.2}, {"id": "teal", "name": "RMZ Ecoworld", "city": "Bengaluru, Karnataka", "leasable": 1.08, "leased": 1.03, "vacant": 0.05, "occupancy": 95.4, "monthlyRent": 11.7, "wale": 3.8}, {"id": "cyan", "name": "EON Free Zone", "city": "Pune, Maharashtra", "leasable": 0.62, "leased": 0.57, "vacant": 0.05, "occupancy": 91.9, "monthlyRent": 5.4, "wale": 3.3}, {"id": "maroon", "name": "Salarpuria Sattva Knowledge City", "city": "Hyderabad, Telangana", "leasable": 0.71, "leased": 0.65, "vacant": 0.06, "occupancy": 91.5, "monthlyRent": 6.2, "wale": 3.4}, {"id": "navy", "name": "Unitech Infospace", "city": "Delhi NCR, Delhi", "leasable": 0.84, "leased": 0.76, "vacant": 0.08, "occupancy": 90.5, "monthlyRent": 8.1, "wale": 2.7}, {"id": "coral", "name": "InfoPark Kochi Phase 2", "city": "Kochi, Kerala", "leasable": 0.31, "leased": 0.28, "vacant": 0.03, "occupancy": 90.3, "monthlyRent": 2.3, "wale": 3.0}], "assetColors": {"green": "#6B7A4A", "blue": "#4E6577", "white": "#A39C8C", "yellow": "#B4930F", "red": "#8B4A4A", "orange": "#9B7A3A", "violet": "#6A5A8C", "indigo": "#4A5A8C", "silver": "#787878", "gold": "#8C7A3A", "teal": "#3D7A72", "cyan": "#3A6F7A", "maroon": "#7A3A4A", "navy": "#3A4A6E", "coral": "#8C5A4A"}, "portfolio": {"monthlyRent": 106.0, "camCharge": 18.0, "occupancy": 91.8, "grossBilling": 127.6, "collections": 125.9, "area": {"leasable": 10.6, "leased": 9.73, "vacant": 0.87}, "rentSpread": [{"band": "0–60 ₹/sft", "area": 0.38}, {"band": "60–90 ₹/sft", "area": 2.37}, {"band": "90–120 ₹/sft", "area": 4.5}, {"band": ">120 ₹/sft", "area": 1.48}], "revenueComposition": [{"label": "Base Rental", "value": 93.7}, {"label": "CAM Rent", "value": 8.5}, {"label": "Parking Rent", "value": 2.4}, {"label": "Other Rent", "value": 1.2}]}, "executive": {"green": {"address": "Andheri East, Mumbai, Maharashtra", "leasableSft": 820000, "wale": 3.2, "leasedArea": 0.76, "vacantArea": 0.06, "totalArea": 0.82, "grossBilling": 12.45, "collection": 12.3, "topTenants": [{"name": "Infosys Ltd", "rent": 2.2}, {"name": "Wipro Technologies", "rent": 1.8}, {"name": "Accenture India", "rent": 2.4}, {"name": "DXC Technology", "rent": 1.6}, {"name": "HDFC Bank", "rent": 0.8}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 129.0}, {"q": "23 Q4", "psf": 133.0}, {"q": "24 Q2", "psf": 136.0}, {"q": "24 Q4", "psf": 139.0}, {"q": "25 Q2", "psf": 143.0}, {"q": "25 Q4", "psf": 146.0}], "billedVsActual": [{"m": "Aug-23", "billed": 10.13, "actual": 10.06}, {"m": "Sept-23", "billed": 10.17, "actual": 10.1}, {"m": "Oct-23", "billed": 10.22, "actual": 10.2}, {"m": "Nov-23", "billed": 10.26, "actual": 10.24}, {"m": "Dec-23", "billed": 10.3, "actual": 10.32}, {"m": "Jan-24", "billed": 10.34, "actual": 10.36}]}, "blue": {"address": "Bellandur, Bengaluru, Karnataka", "leasableSft": 1150000, "wale": 4.1, "leasedArea": 1.09, "vacantArea": 0.06, "totalArea": 1.15, "grossBilling": 15.42, "collection": 15.23, "topTenants": [{"name": "Cognizant", "rent": 3.8}, {"name": "TCS", "rent": 3.2}, {"name": "Capgemini", "rent": 2.8}, {"name": "IBM India", "rent": 1.9}, {"name": "Mphasis", "rent": 1.1}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 111.0}, {"q": "23 Q4", "psf": 114.0}, {"q": "24 Q2", "psf": 117.0}, {"q": "24 Q4", "psf": 120.0}, {"q": "25 Q2", "psf": 123.0}, {"q": "25 Q4", "psf": 126.0}], "billedVsActual": [{"m": "Aug-23", "billed": 12.55, "actual": 12.46}, {"m": "Sept-23", "billed": 12.61, "actual": 12.52}, {"m": "Oct-23", "billed": 12.66, "actual": 12.63}, {"m": "Nov-23", "billed": 12.71, "actual": 12.68}, {"m": "Dec-23", "billed": 12.76, "actual": 12.79}, {"m": "Jan-24", "billed": 12.81, "actual": 12.84}]}, "white": {"address": "Juinagar, Navi Mumbai, Maharashtra", "leasableSft": 670000, "wale": 3.7, "leasedArea": 0.6, "vacantArea": 0.07, "totalArea": 0.67, "grossBilling": 8.74, "collection": 8.64, "topTenants": [{"name": "HCL Technologies", "rent": 2.2}, {"name": "Tech Mahindra", "rent": 1.8}, {"name": "Hexaware Tech", "rent": 1.4}, {"name": "Persistent Sys", "rent": 1.1}, {"name": "Zensar Tech", "rent": 0.8}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 115.0}, {"q": "23 Q4", "psf": 118.0}, {"q": "24 Q2", "psf": 121.0}, {"q": "24 Q4", "psf": 124.0}, {"q": "25 Q2", "psf": 127.0}, {"q": "25 Q4", "psf": 130.0}], "billedVsActual": [{"m": "Aug-23", "billed": 7.11, "actual": 7.06}, {"m": "Sept-23", "billed": 7.14, "actual": 7.09}, {"m": "Oct-23", "billed": 7.17, "actual": 7.16}, {"m": "Nov-23", "billed": 7.2, "actual": 7.19}, {"m": "Dec-23", "billed": 7.23, "actual": 7.24}, {"m": "Jan-24", "billed": 7.26, "actual": 7.27}]}, "yellow": {"address": "Hebbal, Bengaluru, Karnataka", "leasableSft": 940000, "wale": 3.9, "leasedArea": 0.88, "vacantArea": 0.06, "totalArea": 0.94, "grossBilling": 11.96, "collection": 11.82, "topTenants": [{"name": "Salesforce India", "rent": 2.6}, {"name": "Oracle India", "rent": 2.3}, {"name": "Dell Technologies", "rent": 2.0}, {"name": "HP India", "rent": 1.7}, {"name": "Bosch India", "rent": 1.2}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 107.0}, {"q": "23 Q4", "psf": 110.0}, {"q": "24 Q2", "psf": 113.0}, {"q": "24 Q4", "psf": 116.0}, {"q": "25 Q2", "psf": 119.0}, {"q": "25 Q4", "psf": 122.0}], "billedVsActual": [{"m": "Aug-23", "billed": 9.74, "actual": 9.67}, {"m": "Sept-23", "billed": 9.78, "actual": 9.71}, {"m": "Oct-23", "billed": 9.82, "actual": 9.8}, {"m": "Nov-23", "billed": 9.86, "actual": 9.84}, {"m": "Dec-23", "billed": 9.9, "actual": 9.92}, {"m": "Jan-24", "billed": 9.94, "actual": 9.96}]}, "red": {"address": "Perungalathur, Chennai, Tamil Nadu", "leasableSft": 730000, "wale": 2.8, "leasedArea": 0.65, "vacantArea": 0.08, "totalArea": 0.73, "grossBilling": 7.51, "collection": 7.42, "topTenants": [{"name": "Infosys BPO", "rent": 1.9}, {"name": "TCS Chennai", "rent": 1.6}, {"name": "Wipro Technologies", "rent": 1.2}, {"name": "HCL Tech", "rent": 0.9}, {"name": "Mphasis", "rent": 0.5}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 91.0}, {"q": "23 Q4", "psf": 94.0}, {"q": "24 Q2", "psf": 96.0}, {"q": "24 Q4", "psf": 98.0}, {"q": "25 Q2", "psf": 101.0}, {"q": "25 Q4", "psf": 103.0}], "billedVsActual": [{"m": "Aug-23", "billed": 6.12, "actual": 6.08}, {"m": "Sept-23", "billed": 6.14, "actual": 6.1}, {"m": "Oct-23", "billed": 6.17, "actual": 6.16}, {"m": "Nov-23", "billed": 6.19, "actual": 6.18}, {"m": "Dec-23", "billed": 6.22, "actual": 6.23}, {"m": "Jan-24", "billed": 6.24, "actual": 6.25}]}, "orange": {"address": "Sector 132, Noida, Uttar Pradesh", "leasableSft": 580000, "wale": 2.5, "leasedArea": 0.5, "vacantArea": 0.08, "totalArea": 0.58, "grossBilling": 5.84, "collection": 5.77, "topTenants": [{"name": "Cognizant", "rent": 1.6}, {"name": "Newgen Software", "rent": 1.2}, {"name": "Amdocs India", "rent": 1.0}, {"name": "NIIT Technologies", "rent": 0.6}, {"name": "Sapient Global", "rent": 0.5}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 92.0}, {"q": "23 Q4", "psf": 95.0}, {"q": "24 Q2", "psf": 97.0}, {"q": "24 Q4", "psf": 99.0}, {"q": "25 Q2", "psf": 102.0}, {"q": "25 Q4", "psf": 104.0}], "billedVsActual": [{"m": "Aug-23", "billed": 4.75, "actual": 4.72}, {"m": "Sept-23", "billed": 4.77, "actual": 4.74}, {"m": "Oct-23", "billed": 4.79, "actual": 4.78}, {"m": "Nov-23", "billed": 4.81, "actual": 4.8}, {"m": "Dec-23", "billed": 4.83, "actual": 4.84}, {"m": "Jan-24", "billed": 4.85, "actual": 4.86}]}, "violet": {"address": "Sohna Road, Gurugram, Haryana", "leasableSft": 780000, "wale": 3.5, "leasedArea": 0.74, "vacantArea": 0.04, "totalArea": 0.78, "grossBilling": 10.09, "collection": 9.97, "topTenants": [{"name": "Google India", "rent": 2.8}, {"name": "Microsoft India", "rent": 2.2}, {"name": "Amazon Dev Centre", "rent": 1.8}, {"name": "Deloitte India", "rent": 1.0}, {"name": "EY India", "rent": 0.5}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 107.0}, {"q": "23 Q4", "psf": 110.0}, {"q": "24 Q2", "psf": 113.0}, {"q": "24 Q4", "psf": 116.0}, {"q": "25 Q2", "psf": 119.0}, {"q": "25 Q4", "psf": 122.0}], "billedVsActual": [{"m": "Aug-23", "billed": 8.21, "actual": 8.15}, {"m": "Sept-23", "billed": 8.25, "actual": 8.19}, {"m": "Oct-23", "billed": 8.28, "actual": 8.26}, {"m": "Nov-23", "billed": 8.31, "actual": 8.29}, {"m": "Dec-23", "billed": 8.35, "actual": 8.37}, {"m": "Jan-24", "billed": 8.38, "actual": 8.4}]}, "indigo": {"address": "Kanjurmarg, Navi Mumbai, Maharashtra", "leasableSft": 550000, "wale": 2.9, "leasedArea": 0.48, "vacantArea": 0.07, "totalArea": 0.55, "grossBilling": 6.76, "collection": 6.68, "topTenants": [{"name": "HDFC Bank", "rent": 1.8}, {"name": "Axis Bank", "rent": 1.4}, {"name": "Bajaj Finance", "rent": 1.1}, {"name": "Kotak Securities", "rent": 0.8}, {"name": "ICICI Securities", "rent": 0.4}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 111.0}, {"q": "23 Q4", "psf": 114.0}, {"q": "24 Q2", "psf": 117.0}, {"q": "24 Q4", "psf": 120.0}, {"q": "25 Q2", "psf": 123.0}, {"q": "25 Q4", "psf": 126.0}], "billedVsActual": [{"m": "Aug-23", "billed": 5.51, "actual": 5.47}, {"m": "Sept-23", "billed": 5.53, "actual": 5.49}, {"m": "Oct-23", "billed": 5.55, "actual": 5.54}, {"m": "Nov-23", "billed": 5.58, "actual": 5.57}, {"m": "Dec-23", "billed": 5.6, "actual": 5.61}, {"m": "Jan-24", "billed": 5.62, "actual": 5.63}]}, "silver": {"address": "New Town, Kolkata, West Bengal", "leasableSft": 430000, "wale": 3.1, "leasedArea": 0.38, "vacantArea": 0.05, "totalArea": 0.43, "grossBilling": 3.79, "collection": 3.74, "topTenants": [{"name": "ITC Ltd", "rent": 0.9}, {"name": "Emami Ltd", "rent": 0.7}, {"name": "Berger Paints", "rent": 0.6}, {"name": "Balmer Lawrie", "rent": 0.5}, {"name": "Exide Industries", "rent": 0.4}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 79.0}, {"q": "23 Q4", "psf": 81.0}, {"q": "24 Q2", "psf": 83.0}, {"q": "24 Q4", "psf": 85.0}, {"q": "25 Q2", "psf": 87.0}, {"q": "25 Q4", "psf": 89.0}], "billedVsActual": [{"m": "Aug-23", "billed": 3.09, "actual": 3.07}, {"m": "Sept-23", "billed": 3.1, "actual": 3.08}, {"m": "Oct-23", "billed": 3.11, "actual": 3.1}, {"m": "Nov-23", "billed": 3.12, "actual": 3.11}, {"m": "Dec-23", "billed": 3.14, "actual": 3.15}, {"m": "Jan-24", "billed": 3.15, "actual": 3.16}]}, "gold": {"address": "GIFT City, Gandhinagar, Gujarat", "leasableSft": 390000, "wale": 4.2, "leasedArea": 0.36, "vacantArea": 0.03, "totalArea": 0.39, "grossBilling": 4.53, "collection": 4.48, "topTenants": [{"name": "Zydus Lifesciences", "rent": 1.1}, {"name": "Torrent Pharma", "rent": 0.9}, {"name": "Sun Pharma", "rent": 0.8}, {"name": "Intas Pharma", "rent": 0.6}, {"name": "Cadila Healthcare", "rent": 0.4}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 99.0}, {"q": "23 Q4", "psf": 101.0}, {"q": "24 Q2", "psf": 104.0}, {"q": "24 Q4", "psf": 107.0}, {"q": "25 Q2", "psf": 109.0}, {"q": "25 Q4", "psf": 112.0}], "billedVsActual": [{"m": "Aug-23", "billed": 3.68, "actual": 3.65}, {"m": "Sept-23", "billed": 3.7, "actual": 3.67}, {"m": "Oct-23", "billed": 3.71, "actual": 3.7}, {"m": "Nov-23", "billed": 3.73, "actual": 3.72}, {"m": "Dec-23", "billed": 3.74, "actual": 3.75}, {"m": "Jan-24", "billed": 3.76, "actual": 3.77}]}, "teal": {"address": "Sarjapur Road, Bengaluru, Karnataka", "leasableSft": 1080000, "wale": 3.8, "leasedArea": 1.03, "vacantArea": 0.05, "totalArea": 1.08, "grossBilling": 14.13, "collection": 13.96, "topTenants": [{"name": "Flipkart", "rent": 3.4}, {"name": "Myntra", "rent": 2.6}, {"name": "PhonePe", "rent": 2.2}, {"name": "Nykaa", "rent": 2.0}, {"name": "BigBasket", "rent": 1.2}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 108.0}, {"q": "23 Q4", "psf": 111.0}, {"q": "24 Q2", "psf": 114.0}, {"q": "24 Q4", "psf": 117.0}, {"q": "25 Q2", "psf": 120.0}, {"q": "25 Q4", "psf": 123.0}], "billedVsActual": [{"m": "Aug-23", "billed": 11.51, "actual": 11.43}, {"m": "Sept-23", "billed": 11.55, "actual": 11.47}, {"m": "Oct-23", "billed": 11.6, "actual": 11.58}, {"m": "Nov-23", "billed": 11.65, "actual": 11.63}, {"m": "Dec-23", "billed": 11.69, "actual": 11.71}, {"m": "Jan-24", "billed": 11.74, "actual": 11.76}]}, "cyan": {"address": "Hinjawadi, Pune, Maharashtra", "leasableSft": 620000, "wale": 3.3, "leasedArea": 0.57, "vacantArea": 0.05, "totalArea": 0.62, "grossBilling": 6.48, "collection": 6.4, "topTenants": [{"name": "Bajaj Auto", "rent": 1.5}, {"name": "Kirloskar Systems", "rent": 1.2}, {"name": "Mahindra & Mahindra", "rent": 1.0}, {"name": "Finolex Industries", "rent": 0.9}, {"name": "Forbes Marshall", "rent": 0.6}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 89.0}, {"q": "23 Q4", "psf": 92.0}, {"q": "24 Q2", "psf": 94.0}, {"q": "24 Q4", "psf": 96.0}, {"q": "25 Q2", "psf": 99.0}, {"q": "25 Q4", "psf": 101.0}], "billedVsActual": [{"m": "Aug-23", "billed": 5.27, "actual": 5.23}, {"m": "Sept-23", "billed": 5.29, "actual": 5.25}, {"m": "Oct-23", "billed": 5.32, "actual": 5.31}, {"m": "Nov-23", "billed": 5.34, "actual": 5.33}, {"m": "Dec-23", "billed": 5.36, "actual": 5.37}, {"m": "Jan-24", "billed": 5.38, "actual": 5.39}]}, "maroon": {"address": "Raidurgam, Hyderabad, Telangana", "leasableSft": 710000, "wale": 3.4, "leasedArea": 0.65, "vacantArea": 0.06, "totalArea": 0.71, "grossBilling": 7.43, "collection": 7.34, "topTenants": [{"name": "WNS Global", "rent": 1.8}, {"name": "EXL Service", "rent": 1.5}, {"name": "Hexaware Tech", "rent": 1.2}, {"name": "Capgemini", "rent": 0.9}, {"name": "Mphasis", "rent": 0.7}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 90.0}, {"q": "23 Q4", "psf": 93.0}, {"q": "24 Q2", "psf": 95.0}, {"q": "24 Q4", "psf": 97.0}, {"q": "25 Q2", "psf": 100.0}, {"q": "25 Q4", "psf": 102.0}], "billedVsActual": [{"m": "Aug-23", "billed": 6.05, "actual": 6.01}, {"m": "Sept-23", "billed": 6.07, "actual": 6.03}, {"m": "Oct-23", "billed": 6.1, "actual": 6.09}, {"m": "Nov-23", "billed": 6.12, "actual": 6.11}, {"m": "Dec-23", "billed": 6.15, "actual": 6.16}, {"m": "Jan-24", "billed": 6.17, "actual": 6.18}]}, "navy": {"address": "Sector 62, Delhi NCR, Delhi", "leasableSft": 840000, "wale": 2.7, "leasedArea": 0.76, "vacantArea": 0.08, "totalArea": 0.84, "grossBilling": 9.69, "collection": 9.57, "topTenants": [{"name": "Accenture India", "rent": 2.4}, {"name": "IBM India", "rent": 2.0}, {"name": "Capgemini", "rent": 1.6}, {"name": "HP India", "rent": 1.2}, {"name": "Oracle India", "rent": 0.7}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 101.0}, {"q": "23 Q4", "psf": 103.0}, {"q": "24 Q2", "psf": 106.0}, {"q": "24 Q4", "psf": 109.0}, {"q": "25 Q2", "psf": 111.0}, {"q": "25 Q4", "psf": 114.0}], "billedVsActual": [{"m": "Aug-23", "billed": 7.89, "actual": 7.83}, {"m": "Sept-23", "billed": 7.92, "actual": 7.86}, {"m": "Oct-23", "billed": 7.95, "actual": 7.93}, {"m": "Nov-23", "billed": 7.99, "actual": 7.97}, {"m": "Dec-23", "billed": 8.02, "actual": 8.04}, {"m": "Jan-24", "billed": 8.05, "actual": 8.07}]}, "coral": {"address": "Kakkanad, Kochi, Kerala", "leasableSft": 310000, "wale": 3.0, "leasedArea": 0.28, "vacantArea": 0.03, "totalArea": 0.31, "grossBilling": 2.78, "collection": 2.75, "topTenants": [{"name": "UST Global", "rent": 0.7}, {"name": "Tata Elxsi", "rent": 0.6}, {"name": "IBS Software", "rent": 0.5}, {"name": "Infosys BPO", "rent": 0.3}, {"name": "Transys Logistics", "rent": 0.2}], "rentalPsfTrend": [{"q": "23 Q2", "psf": 79.0}, {"q": "23 Q4", "psf": 81.0}, {"q": "24 Q2", "psf": 83.0}, {"q": "24 Q4", "psf": 85.0}, {"q": "25 Q2", "psf": 87.0}, {"q": "25 Q4", "psf": 89.0}], "billedVsActual": [{"m": "Aug-23", "billed": 2.26, "actual": 2.24}, {"m": "Sept-23", "billed": 2.27, "actual": 2.25}, {"m": "Oct-23", "billed": 2.28, "actual": 2.28}, {"m": "Nov-23", "billed": 2.29, "actual": 2.29}, {"m": "Dec-23", "billed": 2.3, "actual": 2.3}, {"m": "Jan-24", "billed": 2.31, "actual": 2.31}]}}, "financial": {"green": {"openingBalance": 4.16, "totalInflow": 12.17, "totalOutflow": 11.54, "closingBalance": 4.79, "sources": [{"label": "Collections", "value": 11.94}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.23}], "usage": [{"label": "Creation of FD", "value": 4.39}, {"label": "Transfer to Projects", "value": 1.23}, {"label": "Other Outflow", "value": 5.9}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 11.49, "actual": 11.39}, {"m": "Sept-23", "planned": 11.55, "actual": 11.53}, {"m": "Oct-23", "planned": 11.62, "actual": 11.67}, {"m": "Nov-23", "planned": 11.68, "actual": 11.72}, {"m": "Dec-23", "planned": 11.73, "actual": 11.94}, {"m": "Jan-24", "planned": 11.78, "actual": 12.17}], "accounts": [{"acct": "green", "open": 4.16, "collections": 12.21, "inflow": 0.23, "close": 4.79}]}, "blue": {"openingBalance": 5.15, "totalInflow": 15.08, "totalOutflow": 14.3, "closingBalance": 5.93, "sources": [{"label": "Collections", "value": 14.79}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.29}], "usage": [{"label": "Creation of FD", "value": 5.44}, {"label": "Transfer to Projects", "value": 1.52}, {"label": "Other Outflow", "value": 7.31}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 14.24, "actual": 14.12}, {"m": "Sept-23", "planned": 14.31, "actual": 14.28}, {"m": "Oct-23", "planned": 14.39, "actual": 14.45}, {"m": "Nov-23", "planned": 14.47, "actual": 14.51}, {"m": "Dec-23", "planned": 14.54, "actual": 14.79}, {"m": "Jan-24", "planned": 14.6, "actual": 15.08}], "accounts": [{"acct": "blue", "open": 5.15, "collections": 15.13, "inflow": 0.29, "close": 5.93}]}, "white": {"openingBalance": 2.92, "totalInflow": 8.55, "totalOutflow": 8.1, "closingBalance": 3.36, "sources": [{"label": "Collections", "value": 8.38}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.16}], "usage": [{"label": "Creation of FD", "value": 3.08}, {"label": "Transfer to Projects", "value": 0.86}, {"label": "Other Outflow", "value": 4.14}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 8.07, "actual": 8.0}, {"m": "Sept-23", "planned": 8.11, "actual": 8.1}, {"m": "Oct-23", "planned": 8.16, "actual": 8.19}, {"m": "Nov-23", "planned": 8.2, "actual": 8.23}, {"m": "Dec-23", "planned": 8.24, "actual": 8.38}, {"m": "Jan-24", "planned": 8.27, "actual": 8.55}], "accounts": [{"acct": "white", "open": 2.92, "collections": 8.58, "inflow": 0.16, "close": 3.36}]}, "yellow": {"openingBalance": 3.99, "totalInflow": 11.7, "totalOutflow": 11.09, "closingBalance": 4.6, "sources": [{"label": "Collections", "value": 11.48}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.23}], "usage": [{"label": "Creation of FD", "value": 4.22}, {"label": "Transfer to Projects", "value": 1.18}, {"label": "Other Outflow", "value": 5.67}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 11.05, "actual": 10.95}, {"m": "Sept-23", "planned": 11.1, "actual": 11.08}, {"m": "Oct-23", "planned": 11.17, "actual": 11.22}, {"m": "Nov-23", "planned": 11.22, "actual": 11.26}, {"m": "Dec-23", "planned": 11.28, "actual": 11.48}, {"m": "Jan-24", "planned": 11.33, "actual": 11.7}], "accounts": [{"acct": "yellow", "open": 3.99, "collections": 11.74, "inflow": 0.23, "close": 4.6}]}, "red": {"openingBalance": 2.51, "totalInflow": 7.35, "totalOutflow": 6.96, "closingBalance": 2.89, "sources": [{"label": "Collections", "value": 7.21}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.14}], "usage": [{"label": "Creation of FD", "value": 2.65}, {"label": "Transfer to Projects", "value": 0.74}, {"label": "Other Outflow", "value": 3.56}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 6.93, "actual": 6.88}, {"m": "Sept-23", "planned": 6.97, "actual": 6.96}, {"m": "Oct-23", "planned": 7.01, "actual": 7.04}, {"m": "Nov-23", "planned": 7.05, "actual": 7.07}, {"m": "Dec-23", "planned": 7.08, "actual": 7.21}, {"m": "Jan-24", "planned": 7.11, "actual": 7.35}], "accounts": [{"acct": "red", "open": 2.51, "collections": 7.37, "inflow": 0.14, "close": 2.89}]}, "orange": {"openingBalance": 1.95, "totalInflow": 5.71, "totalOutflow": 5.41, "closingBalance": 2.25, "sources": [{"label": "Collections", "value": 5.6}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.11}], "usage": [{"label": "Creation of FD", "value": 2.06}, {"label": "Transfer to Projects", "value": 0.58}, {"label": "Other Outflow", "value": 2.77}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 5.39, "actual": 5.34}, {"m": "Sept-23", "planned": 5.42, "actual": 5.41}, {"m": "Oct-23", "planned": 5.45, "actual": 5.47}, {"m": "Nov-23", "planned": 5.48, "actual": 5.5}, {"m": "Dec-23", "planned": 5.5, "actual": 5.6}, {"m": "Jan-24", "planned": 5.53, "actual": 5.71}], "accounts": [{"acct": "orange", "open": 1.95, "collections": 5.73, "inflow": 0.11, "close": 2.25}]}, "violet": {"openingBalance": 3.37, "totalInflow": 9.87, "totalOutflow": 9.35, "closingBalance": 3.88, "sources": [{"label": "Collections", "value": 9.68}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.19}], "usage": [{"label": "Creation of FD", "value": 3.56}, {"label": "Transfer to Projects", "value": 1.0}, {"label": "Other Outflow", "value": 4.78}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 9.31, "actual": 9.23}, {"m": "Sept-23", "planned": 9.36, "actual": 9.34}, {"m": "Oct-23", "planned": 9.42, "actual": 9.46}, {"m": "Nov-23", "planned": 9.46, "actual": 9.49}, {"m": "Dec-23", "planned": 9.51, "actual": 9.68}, {"m": "Jan-24", "planned": 9.55, "actual": 9.87}], "accounts": [{"acct": "violet", "open": 3.37, "collections": 9.9, "inflow": 0.19, "close": 3.88}]}, "indigo": {"openingBalance": 2.26, "totalInflow": 6.62, "totalOutflow": 6.27, "closingBalance": 2.6, "sources": [{"label": "Collections", "value": 6.49}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.13}], "usage": [{"label": "Creation of FD", "value": 2.39}, {"label": "Transfer to Projects", "value": 0.67}, {"label": "Other Outflow", "value": 3.21}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 6.25, "actual": 6.19}, {"m": "Sept-23", "planned": 6.28, "actual": 6.27}, {"m": "Oct-23", "planned": 6.31, "actual": 6.34}, {"m": "Nov-23", "planned": 6.35, "actual": 6.37}, {"m": "Dec-23", "planned": 6.38, "actual": 6.49}, {"m": "Jan-24", "planned": 6.4, "actual": 6.62}], "accounts": [{"acct": "indigo", "open": 2.26, "collections": 6.64, "inflow": 0.13, "close": 2.6}]}, "silver": {"openingBalance": 1.27, "totalInflow": 3.71, "totalOutflow": 3.52, "closingBalance": 1.46, "sources": [{"label": "Collections", "value": 3.64}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.07}], "usage": [{"label": "Creation of FD", "value": 1.34}, {"label": "Transfer to Projects", "value": 0.37}, {"label": "Other Outflow", "value": 1.8}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 3.5, "actual": 3.47}, {"m": "Sept-23", "planned": 3.52, "actual": 3.51}, {"m": "Oct-23", "planned": 3.54, "actual": 3.55}, {"m": "Nov-23", "planned": 3.56, "actual": 3.57}, {"m": "Dec-23", "planned": 3.57, "actual": 3.64}, {"m": "Jan-24", "planned": 3.59, "actual": 3.71}], "accounts": [{"acct": "silver", "open": 1.27, "collections": 3.72, "inflow": 0.07, "close": 1.46}]}, "gold": {"openingBalance": 1.51, "totalInflow": 4.43, "totalOutflow": 4.2, "closingBalance": 1.74, "sources": [{"label": "Collections", "value": 4.34}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.09}], "usage": [{"label": "Creation of FD", "value": 1.6}, {"label": "Transfer to Projects", "value": 0.45}, {"label": "Other Outflow", "value": 2.15}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 4.18, "actual": 4.14}, {"m": "Sept-23", "planned": 4.2, "actual": 4.19}, {"m": "Oct-23", "planned": 4.22, "actual": 4.24}, {"m": "Nov-23", "planned": 4.25, "actual": 4.26}, {"m": "Dec-23", "planned": 4.27, "actual": 4.34}, {"m": "Jan-24", "planned": 4.28, "actual": 4.43}], "accounts": [{"acct": "gold", "open": 1.51, "collections": 4.44, "inflow": 0.09, "close": 1.74}]}, "teal": {"openingBalance": 4.72, "totalInflow": 13.82, "totalOutflow": 13.1, "closingBalance": 5.44, "sources": [{"label": "Collections", "value": 13.56}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.27}], "usage": [{"label": "Creation of FD", "value": 4.98}, {"label": "Transfer to Projects", "value": 1.4}, {"label": "Other Outflow", "value": 6.7}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 13.05, "actual": 12.94}, {"m": "Sept-23", "planned": 13.11, "actual": 13.09}, {"m": "Oct-23", "planned": 13.19, "actual": 13.25}, {"m": "Nov-23", "planned": 13.26, "actual": 13.3}, {"m": "Dec-23", "planned": 13.32, "actual": 13.56}, {"m": "Jan-24", "planned": 13.38, "actual": 13.82}], "accounts": [{"acct": "teal", "open": 4.72, "collections": 13.87, "inflow": 0.27, "close": 5.44}]}, "cyan": {"openingBalance": 2.16, "totalInflow": 6.33, "totalOutflow": 6.0, "closingBalance": 2.49, "sources": [{"label": "Collections", "value": 6.21}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.12}], "usage": [{"label": "Creation of FD", "value": 2.28}, {"label": "Transfer to Projects", "value": 0.64}, {"label": "Other Outflow", "value": 3.07}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 5.98, "actual": 5.93}, {"m": "Sept-23", "planned": 6.01, "actual": 6.0}, {"m": "Oct-23", "planned": 6.04, "actual": 6.07}, {"m": "Nov-23", "planned": 6.08, "actual": 6.1}, {"m": "Dec-23", "planned": 6.11, "actual": 6.21}, {"m": "Jan-24", "planned": 6.13, "actual": 6.33}], "accounts": [{"acct": "cyan", "open": 2.16, "collections": 6.35, "inflow": 0.12, "close": 2.49}]}, "maroon": {"openingBalance": 2.48, "totalInflow": 7.26, "totalOutflow": 6.89, "closingBalance": 2.86, "sources": [{"label": "Collections", "value": 7.12}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.14}], "usage": [{"label": "Creation of FD", "value": 2.62}, {"label": "Transfer to Projects", "value": 0.73}, {"label": "Other Outflow", "value": 3.52}, {"label": "Bank Charges", "value": 0.01}], "businessPlan": [{"m": "Aug-23", "planned": 6.86, "actual": 6.8}, {"m": "Sept-23", "planned": 6.89, "actual": 6.88}, {"m": "Oct-23", "planned": 6.93, "actual": 6.96}, {"m": "Nov-23", "planned": 6.97, "actual": 6.99}, {"m": "Dec-23", "planned": 7.0, "actual": 7.12}, {"m": "Jan-24", "planned": 7.03, "actual": 7.26}], "accounts": [{"acct": "maroon", "open": 2.48, "collections": 7.29, "inflow": 0.14, "close": 2.86}]}, "navy": {"openingBalance": 3.24, "totalInflow": 9.48, "totalOutflow": 8.98, "closingBalance": 3.73, "sources": [{"label": "Collections", "value": 9.3}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.18}], "usage": [{"label": "Creation of FD", "value": 3.42}, {"label": "Transfer to Projects", "value": 0.96}, {"label": "Other Outflow", "value": 4.59}, {"label": "Bank Charges", "value": 0.02}], "businessPlan": [{"m": "Aug-23", "planned": 8.95, "actual": 8.87}, {"m": "Sept-23", "planned": 8.99, "actual": 8.98}, {"m": "Oct-23", "planned": 9.04, "actual": 9.08}, {"m": "Nov-23", "planned": 9.09, "actual": 9.12}, {"m": "Dec-23", "planned": 9.14, "actual": 9.3}, {"m": "Jan-24", "planned": 9.17, "actual": 9.48}], "accounts": [{"acct": "navy", "open": 3.24, "collections": 9.51, "inflow": 0.18, "close": 3.73}]}, "coral": {"openingBalance": 0.93, "totalInflow": 2.72, "totalOutflow": 2.58, "closingBalance": 1.07, "sources": [{"label": "Collections", "value": 2.67}, {"label": "Redemption of FD", "value": 0.0}, {"label": "Other Inflow", "value": 0.05}], "usage": [{"label": "Creation of FD", "value": 0.98}, {"label": "Transfer to Projects", "value": 0.27}, {"label": "Other Outflow", "value": 1.32}, {"label": "Bank Charges", "value": 0.0}], "businessPlan": [{"m": "Aug-23", "planned": 2.57, "actual": 2.55}, {"m": "Sept-23", "planned": 2.58, "actual": 2.58}, {"m": "Oct-23", "planned": 2.6, "actual": 2.61}, {"m": "Nov-23", "planned": 2.61, "actual": 2.62}, {"m": "Dec-23", "planned": 2.62, "actual": 2.67}, {"m": "Jan-24", "planned": 2.63, "actual": 2.72}], "accounts": [{"acct": "coral", "open": 0.93, "collections": 2.73, "inflow": 0.05, "close": 1.07}]}}, "expenses": {"green": {"monthly": [{"m": "Aug-23", "collection": 11.39, "cam": 0.7, "debt": 4.08, "opex": 0.62}, {"m": "Sept-23", "collection": 11.53, "cam": 0.71, "debt": 4.08, "opex": 0.63}, {"m": "Oct-23", "collection": 11.67, "cam": 0.72, "debt": 4.1, "opex": 0.64}, {"m": "Nov-23", "collection": 11.72, "cam": 0.73, "debt": 4.1, "opex": 0.64}, {"m": "Dec-23", "collection": 11.94, "cam": 0.74, "debt": 4.12, "opex": 0.65}, {"m": "Jan-24", "collection": 12.17, "cam": 0.76, "debt": 4.14, "opex": 0.66}], "billedVsActual": [{"m": "Aug-23", "billed": 9.77, "actual": 9.7}, {"m": "Sept-23", "billed": 9.83, "actual": 9.83}, {"m": "Oct-23", "billed": 9.89, "actual": 9.96}, {"m": "Nov-23", "billed": 9.93, "actual": 9.99}, {"m": "Dec-23", "billed": 9.98, "actual": 10.16}, {"m": "Jan-24", "billed": 10.07, "actual": 10.32}]}, "blue": {"monthly": [{"m": "Aug-23", "collection": 14.12, "cam": 0.87, "debt": 5.05, "opex": 0.77}, {"m": "Sept-23", "collection": 14.28, "cam": 0.88, "debt": 5.05, "opex": 0.79}, {"m": "Oct-23", "collection": 14.45, "cam": 0.89, "debt": 5.08, "opex": 0.8}, {"m": "Nov-23", "collection": 14.51, "cam": 0.91, "debt": 5.08, "opex": 0.8}, {"m": "Dec-23", "collection": 14.79, "cam": 0.92, "debt": 5.1, "opex": 0.81}, {"m": "Jan-24", "collection": 15.08, "cam": 0.94, "debt": 5.12, "opex": 0.82}], "billedVsActual": [{"m": "Aug-23", "billed": 12.11, "actual": 12.01}, {"m": "Sept-23", "billed": 12.18, "actual": 12.18}, {"m": "Oct-23", "billed": 12.25, "actual": 12.34}, {"m": "Nov-23", "billed": 12.3, "actual": 12.37}, {"m": "Dec-23", "billed": 12.36, "actual": 12.59}, {"m": "Jan-24", "billed": 12.47, "actual": 12.79}]}, "white": {"monthly": [{"m": "Aug-23", "collection": 8.0, "cam": 0.49, "debt": 2.86, "opex": 0.44}, {"m": "Sept-23", "collection": 8.1, "cam": 0.5, "debt": 2.86, "opex": 0.45}, {"m": "Oct-23", "collection": 8.19, "cam": 0.51, "debt": 2.88, "opex": 0.45}, {"m": "Nov-23", "collection": 8.23, "cam": 0.51, "debt": 2.88, "opex": 0.45}, {"m": "Dec-23", "collection": 8.38, "cam": 0.52, "debt": 2.89, "opex": 0.46}, {"m": "Jan-24", "collection": 8.55, "cam": 0.53, "debt": 2.9, "opex": 0.47}], "billedVsActual": [{"m": "Aug-23", "billed": 6.86, "actual": 6.81}, {"m": "Sept-23", "billed": 6.9, "actual": 6.9}, {"m": "Oct-23", "billed": 6.94, "actual": 6.99}, {"m": "Nov-23", "billed": 6.97, "actual": 7.01}, {"m": "Dec-23", "billed": 7.01, "actual": 7.14}, {"m": "Jan-24", "billed": 7.07, "actual": 7.25}]}, "yellow": {"monthly": [{"m": "Aug-23", "collection": 10.95, "cam": 0.68, "debt": 3.92, "opex": 0.6}, {"m": "Sept-23", "collection": 11.08, "cam": 0.68, "debt": 3.92, "opex": 0.61}, {"m": "Oct-23", "collection": 11.22, "cam": 0.69, "debt": 3.94, "opex": 0.62}, {"m": "Nov-23", "collection": 11.26, "cam": 0.7, "debt": 3.94, "opex": 0.62}, {"m": "Dec-23", "collection": 11.48, "cam": 0.71, "debt": 3.96, "opex": 0.63}, {"m": "Jan-24", "collection": 11.7, "cam": 0.73, "debt": 3.98, "opex": 0.64}], "billedVsActual": [{"m": "Aug-23", "billed": 9.4, "actual": 9.32}, {"m": "Sept-23", "billed": 9.45, "actual": 9.45}, {"m": "Oct-23", "billed": 9.51, "actual": 9.57}, {"m": "Nov-23", "billed": 9.55, "actual": 9.6}, {"m": "Dec-23", "billed": 9.59, "actual": 9.77}, {"m": "Jan-24", "billed": 9.68, "actual": 9.92}]}, "red": {"monthly": [{"m": "Aug-23", "collection": 6.88, "cam": 0.42, "debt": 2.46, "opex": 0.38}, {"m": "Sept-23", "collection": 6.96, "cam": 0.43, "debt": 2.46, "opex": 0.38}, {"m": "Oct-23", "collection": 7.04, "cam": 0.44, "debt": 2.47, "opex": 0.39}, {"m": "Nov-23", "collection": 7.07, "cam": 0.44, "debt": 2.47, "opex": 0.39}, {"m": "Dec-23", "collection": 7.21, "cam": 0.45, "debt": 2.48, "opex": 0.39}, {"m": "Jan-24", "collection": 7.35, "cam": 0.46, "debt": 2.5, "opex": 0.4}], "billedVsActual": [{"m": "Aug-23", "billed": 5.9, "actual": 5.85}, {"m": "Sept-23", "billed": 5.93, "actual": 5.93}, {"m": "Oct-23", "billed": 5.97, "actual": 6.01}, {"m": "Nov-23", "billed": 5.99, "actual": 6.03}, {"m": "Dec-23", "billed": 6.02, "actual": 6.13}, {"m": "Jan-24", "billed": 6.08, "actual": 6.23}]}, "orange": {"monthly": [{"m": "Aug-23", "collection": 5.34, "cam": 0.33, "debt": 1.91, "opex": 0.29}, {"m": "Sept-23", "collection": 5.41, "cam": 0.33, "debt": 1.91, "opex": 0.3}, {"m": "Oct-23", "collection": 5.47, "cam": 0.34, "debt": 1.92, "opex": 0.3}, {"m": "Nov-23", "collection": 5.5, "cam": 0.34, "debt": 1.92, "opex": 0.3}, {"m": "Dec-23", "collection": 5.6, "cam": 0.35, "debt": 1.93, "opex": 0.31}, {"m": "Jan-24", "collection": 5.71, "cam": 0.36, "debt": 1.94, "opex": 0.31}], "billedVsActual": [{"m": "Aug-23", "billed": 4.58, "actual": 4.55}, {"m": "Sept-23", "billed": 4.61, "actual": 4.61}, {"m": "Oct-23", "billed": 4.64, "actual": 4.67}, {"m": "Nov-23", "billed": 4.66, "actual": 4.69}, {"m": "Dec-23", "billed": 4.68, "actual": 4.77}, {"m": "Jan-24", "billed": 4.72, "actual": 4.84}]}, "violet": {"monthly": [{"m": "Aug-23", "collection": 9.23, "cam": 0.57, "debt": 3.3, "opex": 0.51}, {"m": "Sept-23", "collection": 9.34, "cam": 0.58, "debt": 3.3, "opex": 0.51}, {"m": "Oct-23", "collection": 9.46, "cam": 0.59, "debt": 3.32, "opex": 0.52}, {"m": "Nov-23", "collection": 9.49, "cam": 0.59, "debt": 3.32, "opex": 0.52}, {"m": "Dec-23", "collection": 9.68, "cam": 0.6, "debt": 3.34, "opex": 0.53}, {"m": "Jan-24", "collection": 9.87, "cam": 0.62, "debt": 3.35, "opex": 0.54}], "billedVsActual": [{"m": "Aug-23", "billed": 7.92, "actual": 7.86}, {"m": "Sept-23", "billed": 7.97, "actual": 7.97}, {"m": "Oct-23", "billed": 8.02, "actual": 8.07}, {"m": "Nov-23", "billed": 8.05, "actual": 8.1}, {"m": "Dec-23", "billed": 8.09, "actual": 8.24}, {"m": "Jan-24", "billed": 8.16, "actual": 8.36}]}, "indigo": {"monthly": [{"m": "Aug-23", "collection": 6.19, "cam": 0.38, "debt": 2.22, "opex": 0.34}, {"m": "Sept-23", "collection": 6.27, "cam": 0.39, "debt": 2.22, "opex": 0.34}, {"m": "Oct-23", "collection": 6.34, "cam": 0.39, "debt": 2.23, "opex": 0.35}, {"m": "Nov-23", "collection": 6.37, "cam": 0.4, "debt": 2.23, "opex": 0.35}, {"m": "Dec-23", "collection": 6.49, "cam": 0.4, "debt": 2.24, "opex": 0.36}, {"m": "Jan-24", "collection": 6.62, "cam": 0.41, "debt": 2.25, "opex": 0.36}], "billedVsActual": [{"m": "Aug-23", "billed": 5.31, "actual": 5.27}, {"m": "Sept-23", "billed": 5.34, "actual": 5.34}, {"m": "Oct-23", "billed": 5.38, "actual": 5.41}, {"m": "Nov-23", "billed": 5.4, "actual": 5.43}, {"m": "Dec-23", "billed": 5.42, "actual": 5.52}, {"m": "Jan-24", "billed": 5.47, "actual": 5.61}]}, "silver": {"monthly": [{"m": "Aug-23", "collection": 3.47, "cam": 0.21, "debt": 1.24, "opex": 0.19}, {"m": "Sept-23", "collection": 3.51, "cam": 0.22, "debt": 1.24, "opex": 0.19}, {"m": "Oct-23", "collection": 3.55, "cam": 0.22, "debt": 1.25, "opex": 0.2}, {"m": "Nov-23", "collection": 3.57, "cam": 0.22, "debt": 1.25, "opex": 0.2}, {"m": "Dec-23", "collection": 3.64, "cam": 0.23, "debt": 1.25, "opex": 0.2}, {"m": "Jan-24", "collection": 3.71, "cam": 0.23, "debt": 1.26, "opex": 0.2}], "billedVsActual": [{"m": "Aug-23", "billed": 2.98, "actual": 2.95}, {"m": "Sept-23", "billed": 3.0, "actual": 3.0}, {"m": "Oct-23", "billed": 3.01, "actual": 3.03}, {"m": "Nov-23", "billed": 3.03, "actual": 3.04}, {"m": "Dec-23", "billed": 3.04, "actual": 3.1}, {"m": "Jan-24", "billed": 3.07, "actual": 3.14}]}, "gold": {"monthly": [{"m": "Aug-23", "collection": 4.14, "cam": 0.26, "debt": 1.48, "opex": 0.23}, {"m": "Sept-23", "collection": 4.19, "cam": 0.26, "debt": 1.48, "opex": 0.23}, {"m": "Oct-23", "collection": 4.24, "cam": 0.26, "debt": 1.49, "opex": 0.23}, {"m": "Nov-23", "collection": 4.26, "cam": 0.27, "debt": 1.49, "opex": 0.23}, {"m": "Dec-23", "collection": 4.34, "cam": 0.27, "debt": 1.5, "opex": 0.24}, {"m": "Jan-24", "collection": 4.43, "cam": 0.28, "debt": 1.5, "opex": 0.24}], "billedVsActual": [{"m": "Aug-23", "billed": 3.55, "actual": 3.53}, {"m": "Sept-23", "billed": 3.58, "actual": 3.58}, {"m": "Oct-23", "billed": 3.6, "actual": 3.62}, {"m": "Nov-23", "billed": 3.61, "actual": 3.63}, {"m": "Dec-23", "billed": 3.63, "actual": 3.7}, {"m": "Jan-24", "billed": 3.66, "actual": 3.75}]}, "teal": {"monthly": [{"m": "Aug-23", "collection": 12.94, "cam": 0.8, "debt": 4.63, "opex": 0.71}, {"m": "Sept-23", "collection": 13.09, "cam": 0.81, "debt": 4.63, "opex": 0.72}, {"m": "Oct-23", "collection": 13.25, "cam": 0.82, "debt": 4.65, "opex": 0.73}, {"m": "Nov-23", "collection": 13.3, "cam": 0.83, "debt": 4.65, "opex": 0.73}, {"m": "Dec-23", "collection": 13.56, "cam": 0.84, "debt": 4.67, "opex": 0.74}, {"m": "Jan-24", "collection": 13.82, "cam": 0.86, "debt": 4.7, "opex": 0.75}], "billedVsActual": [{"m": "Aug-23", "billed": 11.1, "actual": 11.01}, {"m": "Sept-23", "billed": 11.16, "actual": 11.16}, {"m": "Oct-23", "billed": 11.23, "actual": 11.31}, {"m": "Nov-23", "billed": 11.27, "actual": 11.34}, {"m": "Dec-23", "billed": 11.33, "actual": 11.54}, {"m": "Jan-24", "billed": 11.43, "actual": 11.72}]}, "cyan": {"monthly": [{"m": "Aug-23", "collection": 5.93, "cam": 0.37, "debt": 2.12, "opex": 0.32}, {"m": "Sept-23", "collection": 6.0, "cam": 0.37, "debt": 2.12, "opex": 0.33}, {"m": "Oct-23", "collection": 6.07, "cam": 0.38, "debt": 2.13, "opex": 0.33}, {"m": "Nov-23", "collection": 6.1, "cam": 0.38, "debt": 2.13, "opex": 0.33}, {"m": "Dec-23", "collection": 6.21, "cam": 0.39, "debt": 2.14, "opex": 0.34}, {"m": "Jan-24", "collection": 6.33, "cam": 0.4, "debt": 2.15, "opex": 0.35}], "billedVsActual": [{"m": "Aug-23", "billed": 5.09, "actual": 5.05}, {"m": "Sept-23", "billed": 5.12, "actual": 5.12}, {"m": "Oct-23", "billed": 5.15, "actual": 5.18}, {"m": "Nov-23", "billed": 5.17, "actual": 5.2}, {"m": "Dec-23", "billed": 5.19, "actual": 5.29}, {"m": "Jan-24", "billed": 5.24, "actual": 5.37}]}, "maroon": {"monthly": [{"m": "Aug-23", "collection": 6.8, "cam": 0.42, "debt": 2.43, "opex": 0.37}, {"m": "Sept-23", "collection": 6.88, "cam": 0.42, "debt": 2.43, "opex": 0.38}, {"m": "Oct-23", "collection": 6.96, "cam": 0.43, "debt": 2.44, "opex": 0.38}, {"m": "Nov-23", "collection": 6.99, "cam": 0.44, "debt": 2.44, "opex": 0.38}, {"m": "Dec-23", "collection": 7.12, "cam": 0.44, "debt": 2.46, "opex": 0.39}, {"m": "Jan-24", "collection": 7.26, "cam": 0.45, "debt": 2.47, "opex": 0.4}], "billedVsActual": [{"m": "Aug-23", "billed": 5.83, "actual": 5.79}, {"m": "Sept-23", "billed": 5.87, "actual": 5.87}, {"m": "Oct-23", "billed": 5.9, "actual": 5.94}, {"m": "Nov-23", "billed": 5.93, "actual": 5.96}, {"m": "Dec-23", "billed": 5.95, "actual": 6.07}, {"m": "Jan-24", "billed": 6.01, "actual": 6.16}]}, "navy": {"monthly": [{"m": "Aug-23", "collection": 8.87, "cam": 0.55, "debt": 3.17, "opex": 0.49}, {"m": "Sept-23", "collection": 8.98, "cam": 0.55, "debt": 3.17, "opex": 0.49}, {"m": "Oct-23", "collection": 9.08, "cam": 0.56, "debt": 3.19, "opex": 0.5}, {"m": "Nov-23", "collection": 9.12, "cam": 0.57, "debt": 3.19, "opex": 0.5}, {"m": "Dec-23", "collection": 9.3, "cam": 0.58, "debt": 3.2, "opex": 0.51}, {"m": "Jan-24", "collection": 9.48, "cam": 0.59, "debt": 3.22, "opex": 0.52}], "billedVsActual": [{"m": "Aug-23", "billed": 7.61, "actual": 7.55}, {"m": "Sept-23", "billed": 7.66, "actual": 7.66}, {"m": "Oct-23", "billed": 7.7, "actual": 7.75}, {"m": "Nov-23", "billed": 7.73, "actual": 7.78}, {"m": "Dec-23", "billed": 7.77, "actual": 7.91}, {"m": "Jan-24", "billed": 7.84, "actual": 8.03}]}, "coral": {"monthly": [{"m": "Aug-23", "collection": 2.55, "cam": 0.16, "debt": 0.91, "opex": 0.14}, {"m": "Sept-23", "collection": 2.58, "cam": 0.16, "debt": 0.91, "opex": 0.14}, {"m": "Oct-23", "collection": 2.61, "cam": 0.16, "debt": 0.92, "opex": 0.14}, {"m": "Nov-23", "collection": 2.62, "cam": 0.16, "debt": 0.92, "opex": 0.14}, {"m": "Dec-23", "collection": 2.67, "cam": 0.17, "debt": 0.92, "opex": 0.15}, {"m": "Jan-24", "collection": 2.72, "cam": 0.17, "debt": 0.92, "opex": 0.15}], "billedVsActual": [{"m": "Aug-23", "billed": 2.18, "actual": 2.17}, {"m": "Sept-23", "billed": 2.2, "actual": 2.2}, {"m": "Oct-23", "billed": 2.21, "actual": 2.23}, {"m": "Nov-23", "billed": 2.22, "actual": 2.23}, {"m": "Dec-23", "billed": 2.23, "actual": 2.27}, {"m": "Jan-24", "billed": 2.25, "actual": 2.31}]}}, "stackPlan": {"green": {"asset": "green", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 7, "units": [{"t": "Infosys Ltd", "k": 1, "cat": "it"}, {"t": "Wipro Technologies", "k": 2, "cat": "it"}, {"t": "Accenture India", "k": 3, "cat": "it"}]}, {"floor": 6, "units": [{"t": "DXC Technology", "k": 4, "cat": "outsourcing"}, {"t": "HDFC Bank", "k": 5, "cat": "other"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}, {"floor": 5, "units": [{"t": "Agilent", "k": 7, "cat": "healthcare"}, {"t": "Vacant", "k": 8, "cat": "vacant"}, {"t": "Reliance Jio", "k": 9, "cat": "other"}]}, {"floor": 4, "units": [{"t": "Cipla Ltd", "k": 10, "cat": "it"}, {"t": "Atos", "k": 11, "cat": "outsourcing"}, {"t": "Vacant", "k": 12, "cat": "vacant"}]}, {"floor": 3, "units": [{"t": "Atos", "k": 13, "cat": "outsourcing"}, {"t": "Tyco", "k": 14, "cat": "it"}, {"t": "Vacant", "k": 15, "cat": "vacant"}]}, {"floor": 2, "units": [{"t": "Tyco", "k": 16, "cat": "it"}, {"t": "Genpact India", "k": 17, "cat": "outsourcing"}]}]}, "blue": {"asset": "blue", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 3, "units": [{"t": "Infosys BPO", "k": 1, "cat": "outsourcing"}, {"t": "TCS Chennai", "k": 2, "cat": "outsourcing"}]}, {"floor": 2, "units": [{"t": "Wipro", "k": 3, "cat": "it"}, {"t": "HCL Tech", "k": 4, "cat": "it"}]}, {"floor": 1, "units": [{"t": "Mphasis", "k": 5, "cat": "it"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}]}, "white": {"asset": "white", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 6, "units": [{"t": "Google India", "k": 1, "cat": "it"}, {"t": "Microsoft", "k": 2, "cat": "it"}]}, {"floor": 5, "units": [{"t": "Amazon Dev", "k": 3, "cat": "it"}, {"t": "Deloitte", "k": 4, "cat": "outsourcing"}]}, {"floor": 4, "units": [{"t": "Cognizant", "k": 1, "cat": "outsourcing"}, {"t": "Newgen Soft", "k": 2, "cat": "it"}, {"t": "EY India", "k": 5, "cat": "outsourcing"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}, {"floor": 3, "units": [{"t": "Amdocs", "k": 3, "cat": "it"}, {"t": "NIIT Tech", "k": 4, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Sapient", "k": 5, "cat": "it"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}]}, "yellow": {"asset": "yellow", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 3, "units": [{"t": "HDFC Bank", "k": 1, "cat": "other"}, {"t": "Axis Bank", "k": 2, "cat": "other"}, {"t": "ITC Ltd", "k": 1, "cat": "other"}, {"t": "Emami", "k": 2, "cat": "healthcare"}]}, {"floor": 2, "units": [{"t": "Bajaj Finance", "k": 3, "cat": "other"}, {"t": "Kotak Sec", "k": 4, "cat": "other"}, {"t": "Berger Paints", "k": 3, "cat": "other"}, {"t": "Vacant", "k": 4, "cat": "vacant"}]}, {"floor": 1, "units": [{"t": "ICICI Sec", "k": 5, "cat": "other"}, {"t": "Vacant", "k": 6, "cat": "vacant"}, {"t": "Balmer Lawrie", "k": 5, "cat": "other"}]}]}, "red": {"asset": "red", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 5, "units": [{"t": "Zoho Corp", "k": 1, "cat": "it"}, {"t": "Freshworks", "k": 2, "cat": "it"}]}, {"floor": 4, "units": [{"t": "Ford Business Services", "k": 3, "cat": "outsourcing"}, {"t": "TVS Motor Company", "k": 4, "cat": "other"}]}, {"floor": 3, "units": [{"t": "Standard Chartered GBS", "k": 5, "cat": "outsourcing"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}, {"floor": 2, "units": [{"t": "Apollo Health", "k": 7, "cat": "healthcare"}, {"t": "Robert Bosch", "k": 8, "cat": "it"}]}, {"floor": 1, "units": [{"t": "Larsen & Toubro", "k": 9, "cat": "other"}, {"t": "Cognizant", "k": 10, "cat": "outsourcing"}]}]}, "orange": {"asset": "orange", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 4, "units": [{"t": "Paytm", "k": 1, "cat": "it"}, {"t": "HCL Technologies", "k": 2, "cat": "it"}]}, {"floor": 3, "units": [{"t": "Adobe India", "k": 3, "cat": "it"}, {"t": "Concentrix", "k": 4, "cat": "outsourcing"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 5, "cat": "vacant"}, {"t": "Fiserv", "k": 6, "cat": "outsourcing"}]}, {"floor": 1, "units": [{"t": "Samsung R&D", "k": 7, "cat": "it"}, {"t": "Vacant", "k": 8, "cat": "vacant"}]}]}, "violet": {"asset": "violet", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 5, "units": [{"t": "American Express", "k": 1, "cat": "other"}, {"t": "Google India", "k": 2, "cat": "it"}]}, {"floor": 4, "units": [{"t": "Bain & Company", "k": 3, "cat": "other"}, {"t": "TCS", "k": 4, "cat": "outsourcing"}]}, {"floor": 3, "units": [{"t": "Vacant", "k": 5, "cat": "vacant"}, {"t": "Deloitte", "k": 6, "cat": "outsourcing"}]}, {"floor": 2, "units": [{"t": "Amazon Dev Centre", "k": 7, "cat": "it"}, {"t": "Vodafone Idea", "k": 8, "cat": "other"}]}, {"floor": 1, "units": [{"t": "Fidelity Investments", "k": 9, "cat": "other"}, {"t": "Genpact", "k": 10, "cat": "outsourcing"}]}]}, "indigo": {"asset": "indigo", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 4, "units": [{"t": "Colgate Palmolive", "k": 1, "cat": "other"}, {"t": "Reliance Industries", "k": 2, "cat": "other"}]}, {"floor": 3, "units": [{"t": "Vacant", "k": 3, "cat": "vacant"}, {"t": "IBM India", "k": 4, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Sony India", "k": 5, "cat": "it"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}, {"floor": 1, "units": [{"t": "Fractal Analytics", "k": 7, "cat": "it"}, {"t": "WNS Global Services", "k": 8, "cat": "outsourcing"}]}]}, "silver": {"asset": "silver", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 3, "units": [{"t": "ITC Infotech", "k": 1, "cat": "it"}, {"t": "Genpact", "k": 2, "cat": "outsourcing"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 3, "cat": "vacant"}, {"t": "TCS", "k": 4, "cat": "outsourcing"}]}, {"floor": 1, "units": [{"t": "Exide Industries", "k": 5, "cat": "other"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}]}, "gold": {"asset": "gold", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 3, "units": [{"t": "Bank of America GCC", "k": 1, "cat": "other"}, {"t": "Mastercard", "k": 2, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 3, "cat": "vacant"}, {"t": "Deutsche Bank GCC", "k": 4, "cat": "other"}]}, {"floor": 1, "units": [{"t": "Tata Capital", "k": 5, "cat": "other"}, {"t": "Northern Trust", "k": 6, "cat": "other"}]}]}, "teal": {"asset": "teal", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 6, "units": [{"t": "SAP Labs India", "k": 1, "cat": "it"}, {"t": "Goldman Sachs GCC", "k": 2, "cat": "other"}]}, {"floor": 5, "units": [{"t": "Target Corporation", "k": 3, "cat": "it"}, {"t": "Philips Healthcare", "k": 4, "cat": "healthcare"}]}, {"floor": 4, "units": [{"t": "Vacant", "k": 5, "cat": "vacant"}, {"t": "JPMorgan Chase", "k": 6, "cat": "other"}]}, {"floor": 3, "units": [{"t": "Cisco Systems", "k": 7, "cat": "it"}, {"t": "Dell Technologies", "k": 8, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 9, "cat": "vacant"}, {"t": "Honeywell", "k": 10, "cat": "it"}]}, {"floor": 1, "units": [{"t": "Boeing India", "k": 11, "cat": "it"}, {"t": "Genpact", "k": 12, "cat": "outsourcing"}]}]}, "cyan": {"asset": "cyan", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 4, "units": [{"t": "Barclays GBS", "k": 1, "cat": "outsourcing"}, {"t": "Credit Suisse", "k": 2, "cat": "other"}]}, {"floor": 3, "units": [{"t": "Vacant", "k": 3, "cat": "vacant"}, {"t": "Wipro", "k": 4, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Persistent Systems", "k": 5, "cat": "it"}, {"t": "Vodafone", "k": 6, "cat": "other"}]}, {"floor": 1, "units": [{"t": "Vacant", "k": 7, "cat": "vacant"}, {"t": "Capgemini", "k": 8, "cat": "outsourcing"}]}]}, "maroon": {"asset": "maroon", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 5, "units": [{"t": "Microsoft India", "k": 1, "cat": "it"}, {"t": "Amazon Dev Centre", "k": 2, "cat": "it"}]}, {"floor": 4, "units": [{"t": "Novartis Healthcare", "k": 3, "cat": "healthcare"}, {"t": "Deloitte", "k": 4, "cat": "outsourcing"}]}, {"floor": 3, "units": [{"t": "Vacant", "k": 5, "cat": "vacant"}, {"t": "Qualcomm", "k": 6, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Franklin Templeton", "k": 7, "cat": "other"}, {"t": "Genpact", "k": 8, "cat": "outsourcing"}]}, {"floor": 1, "units": [{"t": "Vacant", "k": 9, "cat": "vacant"}, {"t": "Providence Health", "k": 10, "cat": "healthcare"}]}]}, "navy": {"asset": "navy", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 5, "units": [{"t": "Fidelity Investments", "k": 1, "cat": "other"}, {"t": "Nokia Networks", "k": 2, "cat": "it"}]}, {"floor": 4, "units": [{"t": "Ericsson", "k": 3, "cat": "it"}, {"t": "Vacant", "k": 4, "cat": "vacant"}]}, {"floor": 3, "units": [{"t": "EXL Service", "k": 5, "cat": "outsourcing"}, {"t": "Bharti Airtel", "k": 6, "cat": "other"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 7, "cat": "vacant"}, {"t": "HCL Technologies", "k": 8, "cat": "it"}]}, {"floor": 1, "units": [{"t": "Ranbaxy Labs", "k": 9, "cat": "healthcare"}, {"t": "WNS Global Services", "k": 10, "cat": "outsourcing"}]}]}, "coral": {"asset": "coral", "legend": [{"key": "outsourcing", "label": "Outsourcing", "color": "var(--cat-outsourcing)"}, {"key": "other", "label": "Other Services", "color": "#8C8678"}, {"key": "it", "label": "IT Services", "color": "#B8960C"}, {"key": "healthcare", "label": "Healthcare", "color": "#6E5A2E"}, {"key": "vacant", "label": "Vacant", "color": "var(--vacant)"}], "floors": [{"floor": 3, "units": [{"t": "UST Global", "k": 1, "cat": "it"}, {"t": "Tata Elxsi", "k": 2, "cat": "it"}]}, {"floor": 2, "units": [{"t": "Vacant", "k": 3, "cat": "vacant"}, {"t": "Muthoot Finance", "k": 4, "cat": "other"}]}, {"floor": 1, "units": [{"t": "Federal Bank", "k": 5, "cat": "other"}, {"t": "Vacant", "k": 6, "cat": "vacant"}]}]}}, "tenant": {"green": {"asset": "green", "topTenants": [{"name": "Infosys Ltd", "rent": 2.2}, {"name": "Wipro Technologies", "rent": 1.8}, {"name": "Accenture India", "rent": 2.4}, {"name": "DXC Technology", "rent": 1.6}, {"name": "HDFC Bank", "rent": 0.8}], "effectiveLed": "15 Mar 2021 → 14 Mar 2026", "leaseExpiry": [{"q": "24 Q4", "sft": 120000}, {"q": "25 Q1", "sft": 195000}, {"q": "25 Q3", "sft": 160000}]}, "blue": {"asset": "blue", "topTenants": [{"name": "Cognizant", "rent": 3.8}, {"name": "TCS", "rent": 3.2}, {"name": "Capgemini", "rent": 2.8}, {"name": "IBM India", "rent": 1.9}, {"name": "Mphasis", "rent": 1.1}], "effectiveLed": "01 Jul 2021 → 30 Jun 2026", "leaseExpiry": [{"q": "24 Q2", "sft": 110000}, {"q": "24 Q3", "sft": 95000}, {"q": "24 Q4", "sft": 185000}, {"q": "25 Q1", "sft": 220000}, {"q": "25 Q2", "sft": 275000}, {"q": "25 Q3", "sft": 105000}]}, "white": {"asset": "white", "topTenants": [{"name": "HDFC Bank", "rent": 1.8}, {"name": "Axis Bank", "rent": 1.4}, {"name": "Bajaj Finance", "rent": 1.1}, {"name": "Kotak Securities", "rent": 0.8}, {"name": "ICICI Securities", "rent": 0.4}], "effectiveLed": "01 Jul 2022 → 30 Jun 2027", "leaseExpiry": [{"q": "25 Q1", "sft": 145000}, {"q": "25 Q3", "sft": 180000}, {"q": "26 Q1", "sft": 275000}, {"q": "26 Q2", "sft": 60000}, {"q": "24 Q2", "sft": 180000}, {"q": "24 Q4", "sft": 220000}, {"q": "25 Q2", "sft": 275000}, {"q": "26 Q1", "sft": 355000}, {"q": "24 Q3", "sft": 115000}, {"q": "25 Q1", "sft": 140000}, {"q": "25 Q3", "sft": 175000}]}, "yellow": {"asset": "yellow", "topTenants": [{"name": "Flipkart", "rent": 3.4}, {"name": "Myntra", "rent": 2.6}, {"name": "PhonePe", "rent": 2.2}, {"name": "Nykaa", "rent": 2.0}], "effectiveLed": "01 Nov 2022 → 31 Oct 2027", "leaseExpiry": [{"q": "25 Q2", "sft": 190000}, {"q": "25 Q4", "sft": 245000}, {"q": "26 Q2", "sft": 305000}, {"q": "25 Q1", "sft": 160000}, {"q": "25 Q3", "sft": 200000}, {"q": "26 Q1", "sft": 170000}, {"q": "24 Q2", "sft": 140000}, {"q": "24 Q4", "sft": 175000}, {"q": "25 Q2", "sft": 210000}, {"q": "26 Q1", "sft": 235000}, {"q": "24 Q3", "sft": 55000}, {"q": "25 Q1", "sft": 65000}, {"q": "25 Q4", "sft": 85000}]}, "red": {"asset": "red", "topTenants": [{"name": "Infosys BPO", "rent": 1.9}, {"name": "TCS Chennai", "rent": 1.6}, {"name": "Wipro Technologies", "rent": 1.2}, {"name": "HCL Tech", "rent": 0.9}, {"name": "Mphasis", "rent": 0.5}], "effectiveLed": "01 Jun 2021 → 31 May 2026", "leaseExpiry": [{"q": "24 Q2", "sft": 130000}, {"q": "24 Q4", "sft": 165000}, {"q": "25 Q1", "sft": 150000}, {"q": "25 Q3", "sft": 205000}]}, "orange": {"asset": "orange", "topTenants": [{"name": "Cognizant", "rent": 1.6}, {"name": "Newgen Software", "rent": 1.2}, {"name": "Amdocs India", "rent": 1.0}, {"name": "NIIT Technologies", "rent": 0.6}, {"name": "Sapient Global", "rent": 0.5}], "effectiveLed": "01 Apr 2021 → 31 Mar 2026", "leaseExpiry": [{"q": "24 Q3", "sft": 95000}, {"q": "25 Q1", "sft": 140000}, {"q": "25 Q2", "sft": 175000}, {"q": "26 Q1", "sft": 90000}]}, "violet": {"asset": "violet", "topTenants": [{"name": "Google India", "rent": 2.8}, {"name": "Microsoft India", "rent": 2.2}, {"name": "Amazon Dev Centre", "rent": 1.8}, {"name": "Deloitte India", "rent": 1.0}, {"name": "EY India", "rent": 0.5}], "effectiveLed": "01 Aug 2021 → 31 Jul 2026", "leaseExpiry": [{"q": "24 Q2", "sft": 150000}, {"q": "24 Q4", "sft": 195000}, {"q": "25 Q2", "sft": 210000}, {"q": "26 Q1", "sft": 185000}]}, "indigo": {"asset": "indigo", "topTenants": [], "effectiveLed": "—", "leaseExpiry": [{"q": "24 Q4", "sft": 100000}, {"q": "25 Q1", "sft": 145000}, {"q": "25 Q3", "sft": 180000}, {"q": "26 Q2", "sft": 155000}]}, "silver": {"asset": "silver", "topTenants": [], "effectiveLed": "—", "leaseExpiry": [{"q": "24 Q3", "sft": 70000}, {"q": "25 Q1", "sft": 95000}, {"q": "25 Q2", "sft": 120000}, {"q": "26 Q1", "sft": 115000}]}, "gold": {"asset": "gold", "topTenants": [{"name": "Zydus Lifesciences", "rent": 1.1}, {"name": "Torrent Pharma", "rent": 0.9}, {"name": "Sun Pharma", "rent": 0.8}, {"name": "Intas Pharma", "rent": 0.6}, {"name": "Cadila Healthcare", "rent": 0.4}, {"name": "BigBasket", "rent": 1.2}, {"name": "Bajaj Auto", "rent": 1.5}, {"name": "Kirloskar Systems", "rent": 1.2}, {"name": "Mahindra & Mahindra", "rent": 1.0}], "effectiveLed": "01 Jun 2022 → 31 May 2027", "leaseExpiry": [{"q": "24 Q4", "sft": 80000}, {"q": "25 Q2", "sft": 105000}, {"q": "25 Q4", "sft": 115000}]}, "teal": {"asset": "teal", "topTenants": [], "effectiveLed": "—", "leaseExpiry": []}, "cyan": {"asset": "cyan", "topTenants": [{"name": "Finolex Industries", "rent": 0.9}, {"name": "Forbes Marshall", "rent": 0.6}], "effectiveLed": "01 Jul 2021 → 30 Jun 2026", "leaseExpiry": [{"q": "26 Q2", "sft": 140000}]}, "maroon": {"asset": "maroon", "topTenants": [{"name": "ITC Ltd", "rent": 0.9}, {"name": "Emami Ltd", "rent": 0.7}, {"name": "Berger Paints", "rent": 0.6}, {"name": "Balmer Lawrie", "rent": 0.5}, {"name": "Exide Industries", "rent": 0.4}, {"name": "WNS Global", "rent": 1.8}, {"name": "EXL Service", "rent": 1.5}, {"name": "Hexaware Tech", "rent": 1.2}, {"name": "Capgemini", "rent": 0.9}, {"name": "Mphasis", "rent": 0.7}], "effectiveLed": "01 Apr 2021 → 31 Mar 2026", "leaseExpiry": [{"q": "24 Q4", "sft": 120000}]}, "navy": {"asset": "navy", "topTenants": [{"name": "Accenture India", "rent": 2.4}, {"name": "IBM India", "rent": 2.0}, {"name": "Capgemini", "rent": 1.6}, {"name": "HP India", "rent": 1.2}, {"name": "Oracle India", "rent": 0.7}], "effectiveLed": "01 Apr 2022 → 31 Mar 2027", "leaseExpiry": []}, "coral": {"asset": "coral", "topTenants": [{"name": "UST Global", "rent": 0.7}, {"name": "Tata Elxsi", "rent": 0.6}, {"name": "IBS Software", "rent": 0.5}, {"name": "Infosys BPO", "rent": 0.3}, {"name": "Transys Logistics", "rent": 0.2}], "effectiveLed": "01 Mar 2021 → 28 Feb 2026", "leaseExpiry": [{"q": "26 Q2", "sft": 75000}]}}, "approvals": {"green": {"asset": "green", "asOf": null, "rows": [{"desc": "Environment Clearance", "authority": "State Environment Impact Assessment Authority", "issued": "Aug-22", "validity": "5 years", "timeline": "Mar-27", "risk": "High", "status": "Complied"}, {"desc": "Consent to Establish", "authority": "Maharashtra Pollution Control Board", "issued": "Aug-22", "validity": "5 years", "timeline": "Mar-27", "risk": "High", "status": "Complied"}, {"desc": "Commencement Certificate – Building 1", "authority": "Municipal Corp. of Greater Mumbai", "issued": "Oct-24", "validity": "Till project completion", "timeline": "Mar-25", "risk": "Medium", "status": "Complied"}, {"desc": "IOD Approved Plan – Building 1", "authority": "Municipal Corp. of Greater Mumbai", "issued": "Sept-24", "validity": "Till project completion", "timeline": "Mar-25", "risk": "Medium", "status": "Complied"}, {"desc": "Archaeological NOC", "authority": "Archaeological Survey of India", "issued": "Mar-14", "validity": "Permanent", "timeline": null, "risk": "Low", "status": "Complied"}, {"desc": "Hydraulic Engineer's Remarks – Bldg 1 & 2", "authority": "Municipal Corp. of Greater Mumbai", "issued": "Jan-22", "validity": "Permanent", "timeline": null, "risk": "Low", "status": "Complied"}, {"desc": "I to R/C Conversion Letter", "authority": "Municipal Corp. of Greater Mumbai", "issued": "Jun-14", "validity": "Permanent", "timeline": null, "risk": "Low", "status": "Complied"}, {"desc": "Labour Commissioner NOC", "authority": "Labour Commissioner, Govt. of Maharashtra", "issued": "Jan-14", "validity": "Permanent", "timeline": null, "risk": "Low", "status": "Complied"}, {"desc": "Provisional CFO NOC (Building 1)", "authority": "MCGM, Mumbai Fire Brigade", "issued": "Dec-21", "validity": "Annual renewal", "timeline": null, "risk": "Medium", "status": "Complied"}, {"desc": "Provisional CFO NOC (Building 2)", "authority": "MCGM, Mumbai Fire Brigade", "issued": "Jan-24", "validity": "Annual renewal", "timeline": null, "risk": "Medium", "status": "In Progress"}], "summary": {"complied": 9, "revisionRequired": 1}}, "blue": {"asset": "blue", "asOf": null, "rows": [{"desc": "Env. Clearance", "authority": "SEIAA Haryana", "issued": "Sep-21", "validity": "5 years", "timeline": "Mar-27", "risk": "High", "status": "Complied"}, {"desc": "Building Plan Approval", "authority": "MCG Gurugram", "issued": "Feb-23", "validity": "Till project completion", "timeline": "Sep-25", "risk": "Medium", "status": "In Progress"}, {"desc": "Fire NOC", "authority": "Haryana Fire Dept", "issued": "Mar-24", "validity": "Annual renewal", "timeline": "Sep-25", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "MPCB Mumbai", "issued": "Jul-22", "validity": "5 years", "timeline": "Jan-27", "risk": "High", "status": "Complied"}, {"desc": "Consent to Establish", "authority": "MPCB", "issued": "Jul-22", "validity": "5 years", "timeline": "Jan-27", "risk": "High", "status": "Complied"}, {"desc": "Commencement Certificate", "authority": "NMMC Navi Mumbai", "issued": "Nov-23", "validity": "Till project completion", "timeline": "Mar-25", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "WBPCB Kolkata", "issued": "Jun-20", "validity": "5 years", "timeline": "Dec-25", "risk": "High", "status": "Complied"}], "summary": {"complied": 6, "revisionRequired": 1}}, "white": {"asset": "white", "asOf": null, "rows": [{"desc": "Env. Clearance", "authority": "GPCB Ahmedabad", "issued": "May-21", "validity": "5 years", "timeline": "Nov-26", "risk": "High", "status": "Complied"}, {"desc": "Building Plan Approval", "authority": "AMC Ahmedabad", "issued": "Sep-22", "validity": "Till project completion", "timeline": "Mar-25", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "SEIAA Karnataka", "issued": "Nov-21", "validity": "5 years", "timeline": "May-27", "risk": "High", "status": "Complied"}, {"desc": "Consent to Operate", "authority": "KSPCB", "issued": "Dec-22", "validity": "5 years", "timeline": "Jun-26", "risk": "High", "status": "Complied"}, {"desc": "Fire NOC", "authority": "Karnataka Fire Dept", "issued": "Mar-23", "validity": "Annual renewal", "timeline": "Sep-24", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "MPCB Pune", "issued": "Apr-21", "validity": "5 years", "timeline": "Oct-26", "risk": "High", "status": "Complied"}], "summary": {"complied": 6, "revisionRequired": 0}}, "yellow": {"asset": "yellow", "asOf": null, "rows": [{"desc": "Building Plan Approval", "authority": "PMC Pune", "issued": "Aug-22", "validity": "Till project completion", "timeline": "Feb-25", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "TSPCB Hyderabad", "issued": "Oct-21", "validity": "5 years", "timeline": "Apr-27", "risk": "High", "status": "Complied"}, {"desc": "Building Plan Approval", "authority": "GHMC Hyderabad", "issued": "Mar-23", "validity": "Till project completion", "timeline": "Sep-25", "risk": "Medium", "status": "Complied"}, {"desc": "Env. Clearance", "authority": "DPCC Delhi", "issued": "Jan-22", "validity": "5 years", "timeline": "Jul-27", "risk": "High", "status": "Complied"}, {"desc": "Building Plan Approval", "authority": "DDA Delhi", "issued": "Sep-22", "validity": "Till project completion", "timeline": "Mar-26", "risk": "Medium", "status": "Complied"}, {"desc": "Fire NOC", "authority": "Delhi Fire Services", "issued": "Feb-24", "validity": "Annual renewal", "timeline": "Aug-25", "risk": "Medium", "status": "Complied"}], "summary": {"complied": 6, "revisionRequired": 0}}, "red": {"asset": "red", "asOf": null, "rows": [{"desc": "Env. Clearance", "authority": "SEIAA Tamil Nadu", "issued": "Mar-22", "validity": "5 years", "timeline": "Jun-27", "risk": "High", "status": "Complied"}, {"desc": "Building Plan Approval", "authority": "CMDA Chennai", "issued": "Jun-23", "validity": "Till project completion", "timeline": "Dec-25", "risk": "Medium", "status": "Complied"}, {"desc": "Fire NOC", "authority": "TN Fire & Rescue", "issued": "Jan-24", "validity": "Annual renewal", "timeline": "Jun-25", "risk": "Medium", "status": "Complied"}], "summary": {"complied": 3, "revisionRequired": 0}}, "orange": {"asset": "orange", "asOf": null, "rows": [{"desc": "Env. Clearance", "authority": "SEIAA Uttar Pradesh", "issued": "Aug-21", "validity": "5 years", "timeline": "Dec-26", "risk": "High", "status": "In Progress"}, {"desc": "Building Plan Approval", "authority": "NCRPB Noida", "issued": "Apr-22", "validity": "Till project completion", "timeline": "Sep-25", "risk": "Medium", "status": "Complied"}, {"desc": "Consent to Operate", "authority": "UP Pollution Board", "issued": "Jan-23", "validity": "5 years", "timeline": "Jun-25", "risk": "High", "status": "Complied"}], "summary": {"complied": 2, "revisionRequired": 1}}, "violet": {"asset": "violet", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "indigo": {"asset": "indigo", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "silver": {"asset": "silver", "asOf": null, "rows": [{"desc": "Building Plan Approval", "authority": "KMC Kolkata", "issued": "Jan-22", "validity": "Till project completion", "timeline": "Jun-25", "risk": "Medium", "status": "Complied"}], "summary": {"complied": 1, "revisionRequired": 0}}, "gold": {"asset": "gold", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "teal": {"asset": "teal", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "cyan": {"asset": "cyan", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "maroon": {"asset": "maroon", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "navy": {"asset": "navy", "asOf": null, "rows": [], "summary": {"complied": 0, "revisionRequired": 0}}, "coral": {"asset": "coral", "asOf": null, "rows": [{"desc": "Env. Clearance", "authority": "KSPCB Kerala", "issued": "Jun-21", "validity": "5 years", "timeline": "Dec-26", "risk": "High", "status": "In Progress"}, {"desc": "Building Plan Approval", "authority": "GCDA Kochi", "issued": "Nov-22", "validity": "Till project completion", "timeline": "May-25", "risk": "Medium", "status": "Complied"}], "summary": {"complied": 1, "revisionRequired": 1}}}, "compliance": {"green": {"asset": "green", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax (BBMP) – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant breach / Fund NAV", "rag": "Due Soon"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Financial Statements – AOC-4", "cat": "Statutory", "freq": "Annual", "due": "30 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty on directors", "rag": "Not Due"}, {"item": "Advance Tax – Q1 Instalment", "cat": "Statutory", "freq": "Quarterly", "due": "15 Jun 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Interest u/s 234B/C", "rag": "Not Due"}, {"item": "GST Annual Return – GSTR-9", "cat": "Statutory", "freq": "Annual", "due": "31 Dec 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Late fee ₹200/day", "rag": "Not Due"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}, {"item": "Insurance Renewal – Property + LOP", "cat": "SPV / Legal", "freq": "Annual", "due": "20 Feb 2027", "filed": null, "who": "Asset Manager", "risk": "Uninsured loss", "rag": "Not Due"}, {"item": "Professional Tax (Employer)", "cat": "Statutory", "freq": "Annual", "due": "15 Mar 2027", "filed": null, "who": "HR & Payroll Team", "risk": "Penalty", "rag": "Not Due"}, {"item": "ROC Annual Return – MGT-7", "cat": "Statutory", "freq": "Annual", "due": "30 Oct 2026", "filed": null, "who": "Legal Counsel", "risk": "Additional fee + penalty", "rag": "Not Due"}, {"item": "TDS Return – Form 26Q", "cat": "Statutory", "freq": "Quarterly", "due": "31 Jul 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Interest + penalty", "rag": "Not Due"}, {"item": "Internal Audit – Q4 FY25", "cat": "NA", "freq": "NA", "due": "NA", "filed": null, "who": "Internal Audit Team", "risk": "Governance lapse", "rag": "Not Applicable"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 10, "na": 1}}, "blue": {"asset": "blue", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}, {"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 3, "notDue": 5, "na": 0}}, "white": {"asset": "white", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}, {"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 2, "ok": 4, "notDue": 6, "na": 0}}, "yellow": {"asset": "yellow", "asOf": null, "rows": [{"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}, {"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}, {"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 3, "notDue": 6, "na": 0}}, "red": {"asset": "red", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 3, "na": 0}}, "orange": {"asset": "orange", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 3, "na": 0}}, "violet": {"asset": "violet", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 3, "na": 0}}, "indigo": {"asset": "indigo", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 3, "na": 0}}, "silver": {"asset": "silver", "asOf": null, "rows": [{"item": "Statutory Audit – FY2024-25", "cat": "Statutory", "freq": "Annual", "due": "30 Sep 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Delay in ITR", "rag": "Not Due"}, {"item": "Property Tax – Annual", "cat": "Statutory", "freq": "Annual", "due": "30 Jun 2026", "filed": null, "who": "Asset Manager", "risk": "Penalty 2% / month", "rag": "Not Due"}, {"item": "TDS Payment", "cat": "Statutory", "freq": "Monthly", "due": "7th of every month", "filed": "20 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 2, "notDue": 2, "na": 0}}, "gold": {"asset": "gold", "asOf": null, "rows": [], "summary": {"inProgress": 0, "dueSoon": 0, "ok": 0, "notDue": 0, "na": 0}}, "teal": {"asset": "teal", "asOf": null, "rows": [{"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 1, "notDue": 1, "na": 0}}, "cyan": {"asset": "cyan", "asOf": null, "rows": [], "summary": {"inProgress": 0, "dueSoon": 0, "ok": 0, "notDue": 0, "na": 0}}, "maroon": {"asset": "maroon", "asOf": null, "rows": [], "summary": {"inProgress": 0, "dueSoon": 0, "ok": 0, "notDue": 0, "na": 0}}, "navy": {"asset": "navy", "asOf": null, "rows": [], "summary": {"inProgress": 0, "dueSoon": 0, "ok": 0, "notDue": 0, "na": 0}}, "coral": {"asset": "coral", "asOf": null, "rows": [{"item": "GST Return – GSTR-3B", "cat": "Statutory", "freq": "Monthly", "due": "20th of every month", "filed": "17 Apr 2025", "who": "SPV Finance Manager", "risk": "Penalty + interest", "rag": "OK"}, {"item": "Asset Valuation (External)", "cat": "SPV / Legal", "freq": "Monthly", "due": "30 Apr 2026", "filed": null, "who": "Fund Valuation Team", "risk": "Lender covenant / Fund NAV", "rag": "Due Soon"}, {"item": "Income Tax Return – ITR-6", "cat": "Statutory", "freq": "Annual", "due": "31 Oct 2026", "filed": null, "who": "SPV Finance Manager", "risk": "Penalty u/s 271F", "rag": "Not Due"}], "summary": {"inProgress": 0, "dueSoon": 1, "ok": 1, "notDue": 1, "na": 0}}}};
+
+</script>
+
+<!-- All JSX sections compiled together by Babel -->
+<script type="text/babel">
+/* =====================================================================
+   CHART KIT — hand-built SVG charts (no external libraries)
+   Components exported to window: Donut, HBars, VBars, LineChart,
+   StackedBars, DistBars, MiniSpark
+   ===================================================================== */
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ---------- singleton tooltip ---------- */
+function getTipEl(){
+  let el = document.getElementById('__chartTip');
+  if(!el){ el = document.createElement('div'); el.id='__chartTip'; el.className='chart-tip'; document.body.appendChild(el); }
+  return el;
+}
+function showTip(html, x, y){
+  const el = getTipEl();
+  el.innerHTML = html; el.style.left = x+'px'; el.style.top = y+'px'; el.style.opacity = 1;
+}
+function hideTip(){ const el=document.getElementById('__chartTip'); if(el) el.style.opacity=0; }
+window.showTip = showTip; window.hideTip = hideTip;
+
+const fmtCr  = v => (v<0?'-':'') + '₹' + (Math.round(Math.abs(v)*10)/10).toLocaleString('en-IN') + 'Cr';
+const fmtNum = v => v.toLocaleString('en-IN');
+const cssVar = c => (c && c.startsWith('--')) ? `var(${c})` : c;
+window.fmtCr = fmtCr; window.fmtNum = fmtNum;
+
+/* ================= DONUT / GAUGE ================= */
+function Donut({ value, label, sub, color="var(--brand-maroon)", size=168, track="var(--surface-3)", thickness=14, center }){
+  const [p,setP] = useState(0);
+  useEffect(()=>{ let raf2; const raf1=requestAnimationFrame(()=>{ raf2=requestAnimationFrame(()=>setP(value)); });
+    return ()=>{ cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); }; },[value]);
+  const r=(size-thickness)/2, c=2*Math.PI*r, off=c*(1-p/100);
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+      <div style={{position:'relative',width:size,height:size,display:'grid',placeItems:'center'}}>
+        <svg width={size} height={size} style={{transform:'rotate(-90deg)',display:'block'}}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={track} strokeWidth={thickness}/>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={cssVar(color)} strokeWidth={thickness}
+            strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
+            style={{transition:'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)'}}/>
+        </svg>
+        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
+          <div style={{fontSize:Math.round(size*.19),fontWeight:700,letterSpacing:'-.03em',lineHeight:1}} className="tnum">{center ?? (value+'%')}</div>
+          {label && <div className="mono" style={{fontSize:9.5,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:5}}>{label}</div>}
+        </div>
+      </div>
+      {sub && <div style={{fontSize:11.5,color:'var(--ink-2)',marginTop:2}}>{sub}</div>}
+    </div>
+  );
+}
+
+/* ================= HORIZONTAL BARS ================= */
+function HBars({ data, color="var(--brand-maroon)", unit="cr", height, valFmt }){
+  const [on,setOn]=useState(false);
+  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const max=Math.max(...data.map(d=>d.value))*1.08;
+  const fmt = valFmt || (unit==='cr'?fmtCr:fmtNum);
+  const h = height ?? Math.max(160, data.length*42);
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:13,height:h,justifyContent:'center'}}>
+      {data.map((d,i)=>(
+        <div key={i}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(d.color||color)}"></span><span class="tip-k">${d.name||d.label}</span></div><b>${fmt(d.value)}</b>`, e.clientX, e.clientY)}
+          onMouseLeave={hideTip}
+          style={{cursor:'default'}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+            <span style={{fontSize:12.5,fontWeight:600}}>{d.name||d.label}</span>
+            <span className="mono tnum" style={{fontSize:11.5,color:'var(--ink-2)'}}>{fmt(d.value)}</span>
+          </div>
+          <div style={{height:9,borderRadius:5,background:'var(--surface-3)',overflow:'hidden'}}>
+            <div style={{height:'100%',borderRadius:5,width:on?`${d.value/max*100}%`:'0%',
+              background:cssVar(d.color||color),
+              transition:`width .32s cubic-bezier(.2,.8,.2,1) ${i*.06}s`}}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ================= VERTICAL GROUPED BARS ================= */
+function VBars({ data, series, height=240, unit="cr", yTicks=4 }){
+  const [on,setOn]=useState(false);
+  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const fmt = unit==='cr'?fmtCr:fmtNum;
+  const max = Math.max(...data.flatMap(d=>series.map(s=>d[s.key])))*1.12;
+  const padB=26, padT=8, plotH=height-padB-padT;
+  const ticks=Array.from({length:yTicks+1},(_,i)=>max*i/yTicks);
+  return (
+    <div>
+      <div style={{display:'flex',height,position:'relative'}}>
+        <div style={{position:'absolute',inset:`${padT}px 0 ${padB}px 0`,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          {ticks.slice().reverse().map((t,i)=>(<div key={i} style={{borderTop:'1px solid var(--grid)',position:'relative'}}>
+            <span className="mono" style={{position:'absolute',left:0,top:-7,fontSize:9,color:'var(--ink-3)'}}>{Math.round(t)}</span>
+          </div>))}
+        </div>
+        <div style={{flex:1,display:'flex',alignItems:'flex-end',gap:0,paddingLeft:30,position:'relative',zIndex:1}}>
+          {data.map((d,i)=>(
+            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+              <div style={{display:'flex',alignItems:'flex-end',gap:4,height:plotH,width:'100%',justifyContent:'center'}}>
+                {series.map((s,j)=>(
+                  <div key={j}
+                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.m||d.label}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
+                    onMouseLeave={hideTip}
+                    style={{ width:`min(34px, ${70/series.length}%)`, height:on?`${d[s.key]/max*plotH}px`:'0px',
+                      background:cssVar(s.color),
+                      borderRadius:'4px 4px 0 0', transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.05+j*.03}s`, cursor:'default' }}/>
+                ))}
+              </div>
+              <span className="mono" style={{fontSize:9.5,color:'var(--ink-3)'}}>{d.m||d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="legend" style={{marginTop:12,paddingLeft:30}}>
+        {series.map((s,i)=>(<div key={i} className="li"><span className="sw" style={{background:cssVar(s.color)}}></span>{s.name}</div>))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= STACKED BARS ================= */
+function StackedBars({ data, series, height=250, unit="cr" }){
+  const [on,setOn]=useState(false);
+  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const fmt = unit==='cr'?fmtCr:fmtNum;
+  const totals = data.map(d=>series.reduce((a,s)=>a+d[s.key],0));
+  const max=Math.max(...totals)*1.1, padB=26, plotH=height-padB;
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'flex-end',gap:0,height}}>
+        {data.map((d,i)=>{
+          const tot=totals[i];
+          return (
+            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+              <div style={{width:'min(46px,64%)',height:plotH,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
+                <div style={{display:'flex',flexDirection:'column-reverse',height:on?`${tot/max*plotH}px`:'0px',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.05}s`,borderRadius:'5px 5px 2px 2px',overflow:'hidden'}}>
+                  {series.map((s,j)=>(
+                    <div key={j}
+                      onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.m||d.label}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.15);padding-top:4px"><span class="tip-k">Total</span> <b style="margin-left:auto">${fmt(tot)}</b></div>`, e.clientX, e.clientY)}
+                      onMouseLeave={hideTip}
+                      style={{height:`${d[s.key]/tot*100}%`,background:cssVar(s.color),cursor:'default'}}/>
+                  ))}
+                </div>
+              </div>
+              <span className="mono" style={{fontSize:9.5,color:'var(--ink-3)'}}>{d.m||d.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="legend" style={{marginTop:12}}>
+        {series.map((s,i)=>(<div key={i} className="li"><span className="sw" style={{background:cssVar(s.color)}}></span>{s.name}</div>))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= LINE / AREA CHART ================= */
+function LineChart({ data, series, height=240, unit="cr", yKey, xKey="m" }){
+  const wrapRef=useRef(null); const [w,setW]=useState(560);
+  const [on,setOn]=useState(false);
+  useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); const t=setTimeout(()=>setOn(true),60); return ()=>{window.removeEventListener('resize',r);clearTimeout(t);}; },[]);
+  const fmt = unit==='cr'?fmtCr:(unit==='psf'?(v=>'₹'+v+'/sf'):fmtNum);
+  const padL=34,padR=12,padT=12,padB=26;
+  const allVals=data.flatMap(d=>series.map(s=>d[s.key]));
+  const max=Math.max(...allVals)*1.12, min=Math.min(0,...allVals);
+  const plotW=w-padL-padR, plotH=height-padT-padB;
+  const X=i=>padL + (data.length<=1?plotW/2:i/(data.length-1)*plotW);
+  const Y=v=>padT + plotH - (v-min)/(max-min)*plotH;
+  const ticks=4;
+  return (
+    <div ref={wrapRef} style={{position:'relative'}}>
+      <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} style={{display:'block',overflow:'visible'}}>
+        {Array.from({length:ticks+1}).map((_,i)=>{ const v=min+(max-min)*i/ticks; const y=Y(v);
+          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={4} y={y+3} fontSize="9" fill="var(--ink-3)" fontFamily="var(--mono)">{Math.round(v)}</text></g>; })}
+        {data.map((d,i)=><text key={i} x={X(i)} y={height-8} fontSize="9.5" fill="var(--ink-3)" textAnchor="middle" fontFamily="var(--mono)">{d[xKey]}</text>)}
+        {series.map((s,si)=>{
+          const pts=data.map((d,i)=>[X(i),Y(d[s.key])]);
+          const line=pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+          const area=`${line} L ${pts[pts.length-1][0]} ${Y(min)} L ${pts[0][0]} ${Y(min)} Z`;
+          const col=cssVar(s.color);
+          return (
+            <g key={si}>
+              {s.area!==false && <path d={area} fill={col} opacity={on?.10:0} style={{transition:'opacity .3s'}}/>}
+              <path d={line} fill="none" stroke={col} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                style={{strokeDasharray:1400,strokeDashoffset:on?0:1400,transition:`stroke-dashoffset .6s ease ${si*.15}s`}}/>
+              {pts.map((p,i)=>(
+                <g key={i}>
+                  <circle cx={p[0]} cy={p[1]} r="9" fill="transparent"
+                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${data[i][xKey]}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(data[i][ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
+                    onMouseLeave={hideTip} style={{cursor:'default'}}/>
+                  <circle cx={p[0]} cy={p[1]} r="3.6" fill="var(--surface)" stroke={col} strokeWidth="2.2" style={{opacity:on?1:0,transition:`opacity .4s ease ${.6+i*.05}s`,pointerEvents:'none'}}/>
+                </g>
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+      {series.length>1 && <div className="legend" style={{marginTop:6,paddingLeft:padL}}>
+        {series.map((s,i)=>(<div key={i} className="li"><span className="sw" style={{background:cssVar(s.color),borderRadius:2}}></span>{s.name}</div>))}
+      </div>}
+    </div>
+  );
+}
+
+/* ================= DISTRIBUTION BARS (rent spread) ================= */
+function DistBars({ data, colors=['var(--d4)','var(--d3)','var(--brand-maroon)','var(--brand-orange)'], unit="M sft", height=210 }){
+  const [on,setOn]=useState(false);
+  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const max=Math.max(...data.map(d=>d.area))*1.12;
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',gap:14,height,paddingTop:8}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:8,height:'100%',justifyContent:'flex-end'}}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(colors[i%colors.length])}"></span><span class="tip-k">${d.band}</span></div><b>${d.area} ${unit}</b>`, e.clientX, e.clientY)}
+          onMouseLeave={hideTip}>
+          <span className="tnum" style={{fontSize:13,fontWeight:700}}>{d.area}</span>
+          <div style={{width:'100%',maxWidth:60,height:on?`${d.area/max*100}%`:'0%',
+            background:cssVar(colors[i%colors.length]),
+            borderRadius:'4px 4px 0 0',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.07}s`,cursor:'default'}}/>
+          <span className="mono" style={{fontSize:9.5,color:'var(--ink-3)',textAlign:'center',lineHeight:1.2}}>{d.band}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, { Donut, HBars, VBars, StackedBars, LineChart, DistBars });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   SHARED UI — TopBar, TabNav, PageHead, Kpi, Panel, Badge, DataTable
+   (no decorative icons — boardroom restraint)
+   ===================================================================== */
+const { useState:uS, useMemo:uM, useRef:uR, useEffect:uE } = React;
+
+const assetColorOf = id => (window.DASH.assetColors||{})[id]||'var(--ink-3)';
+
+/* ---------- Top bar: wordmark + controls ---------- */
+function TopBar({ assets, asset, onAsset, theme, onTheme, month, nav, active, onNav }){
+  const [openA,setOpenA]=uS(false);
+  const aObj = assets.find(a=>a.id===asset);
+  uE(()=>{ const h=()=>setOpenA(false); window.addEventListener('click',h); return ()=>window.removeEventListener('click',h); },[]);
+  return (
+    <header className="masthead">
+      <div className="masthead-brand">
+        <img className="brand-logo" src="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIKCSB2aWV3Qm94PSIyNCAyNSAxODQgODYiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDIzMy4zOSAxMzUuMzE7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPHN0eWxlIHR5cGU9InRleHQvY3NzIj4KCS5zdDB7ZmlsbDojRkZGRkZGO30KCS5zdDF7ZmlsbDojQzZBOTdBO30KCS5zdDJ7ZmlsbDojRUQxQjJFO30KCS5zdDN7ZmlsbDojNkU2RDVFO30KCS5zdDR7ZmlsbDojRTc3ODE3O30KCS5zdDV7ZmlsbDojOTcyOTFFO30KCS5zdDZ7ZmlsbDpub25lO3N0cm9rZTojQzZBOTdBO3N0cm9rZS13aWR0aDowLjg5NjY7fQo8L3N0eWxlPgo8Zz4KCTxnPgoJCTxyZWN0IGNsYXNzPSJzdDAiIHg9IjI0IiB5PSIyNSIgd2lkdGg9IjE4NCIgaGVpZ2h0PSI4NiIvPgoJPC9nPgoJPGc+CgkJPGc+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yNy41OCwxMDcuM2w0LjM5LTcuNzVoMmw0LjQyLDcuNzVoLTIuNDZsLTEuMTMtMi4xM2wwLjk1LDAuNTZoLTUuNTFsMC45My0wLjU2bC0xLjEyLDIuMTNIMjcuNTh6CgkJCQkgTTMyLjk2LDEwMS42M2wtMS41NiwzLjA3bC0wLjM3LTAuNTJoMy45bC0wLjMzLDAuNTJsLTEuNTctMy4wN0gzMi45NnoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTM4Ljk4LDEwNy4zdi03Ljc1aDIuNDZ2Ni4wN2g0LjAydjEuNjhIMzguOTh6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik00Ny4wNCwxMDcuM3YtNi4xMkg0NC4ydi0xLjY0aDguMTZ2MS42NGgtMi44NXY2LjEySDQ3LjA0eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNTMuMzksMTA3LjN2LTcuNzVoNi43M3YxLjU1aC00LjM4djEuNDhoNC4wNnYxLjU2aC00LjA2djEuNmg0LjM4djEuNTZINTMuMzl6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02MS40MiwxMDcuM3YtNy43NWg0LjQzYzEuMDgsMCwxLjkyLDAuMjEsMi41MSwwLjY0YzAuNTksMC40MywwLjg4LDEuMDIsMC44OCwxLjc3CgkJCQljMCwwLjUxLTAuMTMsMC45NC0wLjQsMS4yOWMtMC4yNywwLjM2LTAuNjUsMC42My0xLjE2LDAuODNzLTEuMTEsMC4yOS0xLjgxLDAuMjlsMC4xMi0wLjI3aDAuNjdjMC4zOSwwLDAuNzQsMC4wOSwxLjA0LDAuMjYKCQkJCWMwLjMsMC4xOCwwLjU1LDAuNDIsMC43NSwwLjc0bDEuNDIsMi4yMWgtMi42OWwtMS41My0yLjQ4Yy0wLjEtMC4xNi0wLjI0LTAuMjctMC40My0wLjMzYy0wLjE5LTAuMDYtMC40MS0wLjA5LTAuNjUtMC4wOWgtMC42OQoJCQkJdjIuODlINjEuNDJ6IE02My44OCwxMDIuOTZoMS41NGMwLjQ4LDAsMC44NC0wLjA4LDEuMDktMC4yNHMwLjM3LTAuMzksMC4zNy0wLjcxYzAtMC4zMS0wLjEyLTAuNTQtMC4zNy0wLjY5CgkJCQljLTAuMjUtMC4xNS0wLjYxLTAuMjMtMS4wOS0wLjIzaC0xLjU0VjEwMi45NnoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTcwLjkxLDEwNy4zdi03Ljc1aDEuODFsNC43NSw0Ljg3aC0wLjM5di00Ljg3aDIuMjh2Ny43NWgtMS44MWwtNC43Mi00Ljg3aDAuMzl2NC44N0g3MC45MXoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTc5LjkzLDEwNy4zbDQuMzktNy43NWgybDQuNDIsNy43NWgtMi40NmwtMS4xMy0yLjEzbDAuOTUsMC41NmgtNS41MWwwLjkzLTAuNTZsLTEuMTIsMi4xM0g3OS45M3oKCQkJCSBNODUuMzEsMTAxLjYzbC0xLjU2LDMuMDdsLTAuMzctMC41MmgzLjlsLTAuMzMsMC41MmwtMS41Ny0zLjA3SDg1LjMxeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNOTIuNDIsMTA3LjN2LTYuMTJoLTIuODV2LTEuNjRoOC4xNnYxLjY0aC0yLjg1djYuMTJIOTIuNDJ6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik05OC43NywxMDcuM3YtNy43NWg2LjczdjEuNTVoLTQuMzh2MS40OGg0LjA2djEuNTZoLTQuMDZ2MS42aDQuMzh2MS41Nkg5OC43N3oiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTExMC42NCwxMDcuM3YtNy43NWgyLjQ2djcuNzVIMTEwLjY0eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTE0LjgzLDEwNy4zdi03Ljc1aDEuODFsNC43NSw0Ljg3aC0wLjM5di00Ljg3aDIuMjh2Ny43NWgtMS44MWwtNC43Mi00Ljg3aDAuMzl2NC44N0gxMTQuODN6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xMjguMTQsMTA3LjNsLTQuMjYtNy43NWgyLjY0bDMuMDQsNS45aC0wLjczbDMuMDItNS45aDIuNTRsLTQuMjYsNy43NUgxMjguMTR6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xMzQuOTgsMTA3LjN2LTcuNzVoNi43M3YxLjU1aC00LjM4djEuNDhoNC4wNnYxLjU2aC00LjA2djEuNmg0LjM4djEuNTZIMTM0Ljk4eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTQ2LjQsMTA3LjQyYy0wLjc1LDAtMS40Ny0wLjA4LTIuMTUtMC4yM2MtMC42OC0wLjE1LTEuMjUtMC4zNS0xLjcxLTAuNjFsMC42OS0xLjU3CgkJCQljMC4yOSwwLjE1LDAuNjEsMC4yOSwwLjk2LDAuNGMwLjM1LDAuMTEsMC43MSwwLjIsMS4wOCwwLjI2YzAuMzgsMC4wNiwwLjc2LDAuMDksMS4xNSwwLjA5YzAuNTksMCwwLjk5LTAuMDYsMS4yMi0wLjE5CgkJCQljMC4yMy0wLjEyLDAuMzQtMC4yOSwwLjM0LTAuNDhjMC0wLjE4LTAuMDgtMC4zMS0wLjIzLTAuNDFjLTAuMTUtMC4xLTAuNDMtMC4xOS0wLjg1LTAuMjZsLTEuNjItMC4yOAoJCQkJYy0wLjg2LTAuMTUtMS41LTAuNC0xLjkzLTAuNzZjLTAuNDMtMC4zNi0wLjY0LTAuODQtMC42NC0xLjQyYzAtMC41MSwwLjE3LTAuOTYsMC41LTEuMzRjMC4zMy0wLjM4LDAuOC0wLjY3LDEuNC0wLjg4CgkJCQlzMS4zMS0wLjMxLDIuMTItMC4zMWMwLjY3LDAsMS4yOSwwLjA4LDEuODgsMC4yM2MwLjU5LDAuMTUsMS4wNywwLjM2LDEuNDQsMC42MmwtMC42OSwxLjQ3Yy0wLjM1LTAuMjEtMC43NS0wLjM4LTEuMi0wLjQ5CgkJCQljLTAuNDQtMC4xMS0wLjk0LTAuMTctMS40OC0wLjE3Yy0wLjUxLDAtMC45LDAuMDYtMS4xNywwLjE5cy0wLjM5LDAuMzEtMC4zOSwwLjU0YzAsMC4xNiwwLjA4LDAuMywwLjIzLDAuNDEKCQkJCXMwLjQ0LDAuMjEsMC44NiwwLjI4bDEuNiwwLjI2YzAuODYsMC4xNCwxLjUxLDAuMzksMS45NCwwLjc1YzAuNDMsMC4zNiwwLjY1LDAuODMsMC42NSwxLjQxYzAsMC41LTAuMTcsMC45NC0wLjUsMS4zMQoJCQkJYy0wLjMzLDAuMzctMC44LDAuNjYtMS4zOSwwLjg3UzE0Ny4yMSwxMDcuNDIsMTQ2LjQsMTA3LjQyeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTUzLjc1LDEwNy4zdi02LjEyaC0yLjg1di0xLjY0aDguMTZ2MS42NGgtMi44NXY2LjEySDE1My43NXoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTE2MC4xNCwxMDcuM3YtNy43NWgyLjEzbDMuMDcsNS42OWgtMC40NGwzLjA2LTUuNjloMi4xNHY3Ljc1aC0yLjIydi00Ljc1aDAuNTdsLTIuNjYsNC43NWgtMS4zOAoJCQkJbC0yLjY4LTQuNzVoMC42MXY0Ljc1SDE2MC4xNHoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTE3MS44NiwxMDcuM3YtNy43NWg2LjczdjEuNTVoLTQuMzh2MS40OGg0LjA2djEuNTZoLTQuMDZ2MS42aDQuMzh2MS41NkgxNzEuODZ6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNzkuODksMTA3LjN2LTcuNzVoMS44MWw0Ljc1LDQuODdoLTAuMzl2LTQuODdoMi4yOHY3Ljc1aC0xLjgxbC00LjcyLTQuODdoMC4zOXY0Ljg3SDE3OS44OXoiLz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTE5Mi4yMSwxMDcuM3YtNi4xMmgtMi44NXYtMS42NGg4LjE2djEuNjRoLTIuODV2Ni4xMkgxOTIuMjF6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yMDEuODEsMTA3LjQyYy0wLjc1LDAtMS40Ny0wLjA4LTIuMTUtMC4yM2MtMC42OC0wLjE1LTEuMjUtMC4zNS0xLjcxLTAuNjFsMC42OS0xLjU3CgkJCQljMC4yOSwwLjE1LDAuNjEsMC4yOSwwLjk2LDAuNGMwLjM1LDAuMTEsMC43MSwwLjIsMS4wOCwwLjI2YzAuMzgsMC4wNiwwLjc2LDAuMDksMS4xNSwwLjA5YzAuNTksMCwwLjk5LTAuMDYsMS4yMi0wLjE5CgkJCQljMC4yMy0wLjEyLDAuMzQtMC4yOSwwLjM0LTAuNDhjMC0wLjE4LTAuMDgtMC4zMS0wLjIzLTAuNDFjLTAuMTUtMC4xLTAuNDMtMC4xOS0wLjg1LTAuMjZsLTEuNjItMC4yOAoJCQkJYy0wLjg2LTAuMTUtMS41LTAuNC0xLjkzLTAuNzZjLTAuNDMtMC4zNi0wLjY0LTAuODQtMC42NC0xLjQyYzAtMC41MSwwLjE3LTAuOTYsMC41LTEuMzRjMC4zMy0wLjM4LDAuOC0wLjY3LDEuNC0wLjg4CgkJCQlzMS4zMS0wLjMxLDIuMTItMC4zMWMwLjY3LDAsMS4yOSwwLjA4LDEuODgsMC4yM2MwLjU5LDAuMTUsMS4wNywwLjM2LDEuNDQsMC42MmwtMC42OSwxLjQ3Yy0wLjM1LTAuMjEtMC43NS0wLjM4LTEuMi0wLjQ5CgkJCQljLTAuNDQtMC4xMS0wLjk0LTAuMTctMS40OC0wLjE3Yy0wLjUxLDAtMC45LDAuMDYtMS4xNywwLjE5cy0wLjM5LDAuMzEtMC4zOSwwLjU0YzAsMC4xNiwwLjA4LDAuMywwLjIzLDAuNDEKCQkJCXMwLjQ0LDAuMjEsMC44NiwwLjI4bDEuNiwwLjI2YzAuODYsMC4xNCwxLjUxLDAuMzksMS45NCwwLjc1YzAuNDMsMC4zNiwwLjY1LDAuODMsMC42NSwxLjQxYzAsMC41LTAuMTcsMC45NC0wLjUsMS4zMQoJCQkJYy0wLjMzLDAuMzctMC44LDAuNjYtMS4zOSwwLjg3UzIwMi42MiwxMDcuNDIsMjAxLjgxLDEwNy40MnoiLz4KCQk8L2c+CgkJPGc+CgkJCTxnPgoJCQkJPGc+CgkJCQkJPHBhdGggY2xhc3M9InN0MiIgZD0iTTE2OS43OSw2Ni42OWMxLjUyLDAsNC4xNi0xLjYzLDUuNS0xLjYzYzEuNzMsMC4wNywyLjI1LDAuNTEsNC41NSwyLjQxYzAuMTcsMC4xNywxLjAxLDAuNDUsMC45NSwwLjc5CgkJCQkJCWMtMC4xNiwwLjYyLTAuODksMC43My0xLjA2LDAuOWMtMC41LDAuMjctMS43NSwxLjM1LTMuMTUsMS40Yy0xLjMsMC4wNS0zLjM3LTAuNDQtNC4yNy0wLjQ0Yy0wLjc4LDAuMDUtMS41MiwwLjc3LTEuNjgsMS4xMgoJCQkJCQljLTAuMTcsMC4yOC0wLjQ1LDAuNS0wLjc5LDAuMzhjLTAuMjctMC4wNC0wLjM5LTAuMjctMC4yMy0wLjM4YzAuMTctMC4xNywwLjM1LTAuMjgsMC40LTAuNTFjMC4xMS0wLjI3LDAuMTEtMC4yNywwLjA2LTAuMzkKCQkJCQkJYy0wLjExLTAuMTEtMC4xMS0wLjksMC4zNC0xLjI5YzAuNDYtMC4zNSwxLjYzLTAuOSwzLjItMC44NGMxLjUyLDAuMDYsMi40MiwwLjM5LDQuMzIsMC40NWMwLjYxLDAsMC45Ni0wLjE3LDEuMTItMC40NQoJCQkJCQljMCwwLTAuMTYsMC4wNi0wLjY3LDAuMDZjLTEuMTIsMC0yLjQ4LTEuNTctNC4xNi0xLjYzYy0xLjg1LTAuMTItNC4xLDEuNjktNS42NiwxLjY5Yy0wLjk2LDAtMS44NS0wLjYzLTEuODUtMS4zNQoJCQkJCQljMC0wLjY3LDAuNzItMC45LDAuNzItMC45czAtMC40NCwwLTAuNTZjMC0wLjEsMC4xNy0wLjM0LDAuNC0wLjM0YzAuMjgsMCwwLjM1LDAuMTEsMC4zNSwwLjM0YzAsMC4xNywwLjE2LDAuNDYsMC41NSwwLjczCgkJCQkJCUMxNjkuMDcsNjYuNTIsMTY5LjQxLDY2LjY5LDE2OS43OSw2Ni42OXoiLz4KCQkJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMTgwLjY0LDY0LjEyYzAuMjcsMS4wNSwxLjUsMS43OCwyLjQ2LDEuNzNjMC45NS0wLjExLDUuMDQtMS4zMyw3LjkxLTEuNDFjMi44NiwwLDYuNTEsMC40LDYuNjcsMS43NQoJCQkJCQljMC4xMiwwLjU2LTAuMTEsMC43OS0wLjIyLDAuOWMtMC4wNiwwLjA1LTAuMzksMC4zOC0wLjM5LDAuODRjLTAuMDYsMC40NCwwLDAuNjItMC4wNiwwLjg0Yy0wLjExLDAuMjMtMC40NCwwLjQtMC40NCwwLjExCgkJCQkJCWMtMC4wNi0wLjMzLDAuMTYtMS4wNy0wLjg1LTEuNDFjLTEuNjMtMC41Ni00LjYtMS4wNi02Ljc4LTEuMDZjLTEuNzQsMC01LjczLDAuMzktNi45LDAuNjhjLTAuOTUsMC4yOC0yLjEzLTAuNDUtMi4xOS0xLjAyCgkJCQkJCWMtMC4wNS0wLjQ0LDAuMzQtMC43MiwwLjIzLTEuMzVDMTgwLjAxLDY0LjEyLDE4MC41Myw2My42LDE4MC42NCw2NC4xMnoiLz4KCQkJCTwvZz4KCQkJCTxnPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0xOTIuNjMsODAuODhjMCwwLjA1LTAuNTEsMC4xNi0wLjgzLDAuMjJjLTAuNTEsMC4wOC0xLjIzLTAuMjctMS40LTAuMzNjLTAuMTItMC4xMS0wLjM0LDAuMDUtMC4yNCwwLjIzCgkJCQkJCWMwLjI3LDAuMzQsMC44OSwxLjA2LDEuNTYsMS4wNmMwLjg1LDAsMS4yNS0wLjcyLDEuMzYtMS4xOGMwLTAuMTEsMC0wLjExLDAtMC4xN2MwLDAtMC4xNywwLTAuMjksMAoJCQkJCQlDMTkyLjc1LDgwLjcxLDE5Mi42OSw4MC43NywxOTIuNjMsODAuODh6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE5Ny4yOSw3My4zNmwtMC4yOS0wLjA2YzAsMC40NS0wLjI3LDIuNy0xLjAxLDQuNjFjLTAuNzMsMS45LTIuNDcsNS41LTQuMDQsNi4xMgoJCQkJCQljLTIuMDIsMC43Mi02Ljc5LTEuMy03LjkyLTIuMzFjLTAuMDUsMC0wLjIxLTAuMDUtMC4yOCwwYy0wLjA2LDAuMDYsMC4wNiwwLjE2LDAuMTIsMC4yOWMwLjIxLDAuMjEsMS42MiwxLjQsMy4wNywyLjA3CgkJCQkJCWMxLjI0LDAuNjIsMy4zMiwxLjI0LDQuODgsMS4xMmMxLjAxLTAuMDUsMS43My0xLjE3LDEuOTEtMS41MWMxLjIzLTIuMDcsMi40Ni00LjAzLDIuOTEtNS42MQoJCQkJCQlDMTk2Ljk2LDc3LjAxLDE5Ny41Niw3My44MiwxOTcuMjksNzMuMzZ6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE5My40Myw4MC4yMWMwLjEtMC4yMS0wLjMzLTEtMC40NS0xYy0wLjE3LDAtMC4zNCwwLjMzLTAuNzMsMC4zM2MtMC4yOCwwLTAuNTItMC4zOS0xLjAxLTAuMzkKCQkJCQkJYy0wLjI4LDAtMC44OSwwLjc4LTEuNTgsMC43OGMtMC4zOSwwLTAuNTYsMC4xMS0wLjU2LDAuMjJjMCwwLjExLDAuMDUsMC4yOCwwLjUsMC4yOGMwLjU3LDAsMS4yNC0wLjU2LDEuNjMtMC41NgoJCQkJCQljMC4zOS0wLjA2LDAuNzMsMC41MSwwLjg0LDAuNTFjMC4xMiwwLDAuMjItMC4yOSwwLjczLTAuMjlDMTkyLjk4LDgwLjA5LDE5My4zMSw4MC4zOCwxOTMuNDMsODAuMjF6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE5My44Nyw3Ny4wMWMtMC4xNywxLjA3LTEuNTgsMC41Ny0xLjkxLDAuNTdjLTAuNTYsMC0wLjczLDAuMjItMS4wMSwwLjI5Yy0wLjIyLDAtMC41NS0wLjEyLTAuNjctMC4xOAoJCQkJCQljLTAuMTEsMC0wLjM0LDAtMC4yMiwwLjIzYzAuMDYsMC4xMSwwLjUxLDAuNSwwLjksMC41YzAuMzksMCwwLjg5LTAuMzQsMS4wNi0wLjM0YzAuNDUsMCwwLjQ1LDAuNDUsMC44NCwwLjQ1CgkJCQkJCWMwLjA2LDAsMC4yOC0wLjE3LDAuNTctMC4zM2MwLjI4LTAuMjMsMC42MS0wLjMzLDAuNzgtMC43NGMwLjA1LTAuMjksMC4xOC0xLjc0LDAuMzMtMi45OGMwLjA1LTAuODMsMC4yNC0xLjU3LDAuMjQtMS42MgoJCQkJCQljMC4xMS0wLjM0LDAuMjItMC4zNCwwLjMzLTAuMzRjMC4xMSwwLDAuMTEsMC4xMiwwLjExLDAuMThjMCwwLjEyLTAuMTYsMC4xNi0wLjE2LDAuMTZzMCwwLjM0LDAuMDUsMC4zOQoJCQkJCQljMC4xMSwwLjA1LDAuMTcsMC4xMSwwLjUxLDBjMC4yNy0wLjA1LDAuNjYtMC4zMywwLjY2LTAuNjFjMC0wLjU3LTEtMC43NC0xLTEuMDJjMC0wLjE2LDAuNS0wLjczLDEuNC0wLjc4CgkJCQkJCWMwLjExLDAsMC4yMi0wLjA1LDAuMjItMC4xMmMwLjA2LTAuMTItMC4xNi0wLjI3LTAuMjItMC4yN2MtMS4wMS0wLjEyLTIuMTQsMC41Ni0yLjUyLDAuOTUKCQkJCQkJQzE5Mi45OCw3Mi41MSwxOTMuOTIsNzYuNDQsMTkzLjg3LDc3LjAxeiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0xODUuNDUsNzEuNDZjMC41MS0wLjM1LDIuMTMtMS40Niw1LjExLTEuNDFjMC4yOCwwLDAuNDktMC40NC0wLjA2LTAuNDRjLTAuNzMtMC4wNi0yLjc1LTAuMTctMy41NC0wLjA2CgkJCQkJCWMtMC41MSwwLjA2LTIsMC40LTEuOSwwLjY3YzAuMTYsMC4zOSwwLjExLDAuNzQsMC4wNCwwLjg1QzE4NS4wMSw3MS4yMywxODUuMTEsNzEuNzMsMTg1LjQ1LDcxLjQ2eiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0xODguMDMsNzIuNzVjLTAuMDUsMC4wNi0wLjEyLDAuMzgsMC40LDAuMzhjMC41NiwwLDEuMTctMC40NCwxLjEyLTAuNzJjLTAuMDctMC4yMy0wLjUxLTAuNjItMC4xNy0wLjU3CgkJCQkJCWMwLjE3LDAsMS4yMywwLDEuMjMsMHMwLjQsMC4xMiwwLjA3LTAuMjNjLTAuMjctMC4yNy0xLjUyLTAuNDUtMi4zMS0wLjQ1Yy0wLjQ5LDAtMS40LDAuMjktMS41NiwwLjM0CgkJCQkJCWMtMC4xNywwLjA2LTAuNDUsMC4yMi0wLjI5LDAuMzljMC4xOCwwLjE2LDAuMTgsMC4zNSwwLjEyLDAuNjFjLTAuMDYsMC4yNCwwLjI3LDAuMTgsMC4zOSwwLjEyYzAuMTctMC4xMiwwLjYzLTAuMzksMC43OS0wLjQ2CgkJCQkJCWMwLjIyLTAuMDUsMC41NiwwLDAuNjIsMC4yM0MxODguNDksNzIuNjksMTg4LjM2LDcyLjQ3LDE4OC4wMyw3Mi43NXoiLz4KCQkJCQk8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMTg2LjA4LDYxLjQ3YzEsMC42MiwxLjczLDEuMTIsMS43MywxLjEyYzAuMTEsMC4xNywwLjksMC40NiwwLjk2LDAuNDZjMC4wNSwwLDAuOTUsMC44MywwLjk1LDAuODMKCQkJCQkJYzAuNTYsMC4xMiwwLjQ1LTAuMjgsMC40NS0wLjI4bC0wLjc5LTEuODVjLTAuMDUtMC4zOS0wLjUtMC42Ny0wLjUtMC42N3MtMC43NC0wLjQ1LTEuMTctMC4wNmMtMC40LDAuMzktMC45NiwwLjA2LTAuOTYsMC4wNgoJCQkJCQlsLTEuMjktMS4xM2MwLTAuMS0xLjAxLTAuODQtMS44NS0wLjQ1Yy0wLjc4LDAuMzktMS4yNS0wLjQ1LTEuMjUtMC40NWMtMC4xNS0wLjA1LTAuNDktMC4wNS0wLjQ5LDAuMzQKCQkJCQkJYzAuMDYsMC42MiwwLjM5LDAuNzksMC4zOSwwLjc5YzAuNjgsMC41MSwxLjczLDAuNTYsMS43MywwLjU2QzE4My45NSw2MC44NiwxODUuMTEsNjAuOCwxODYuMDgsNjEuNDd6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE4OS4zMyw1OS42N2MwLjIyLDAuMTEsMC4xMSwwLjM0LDAuNTUsMC42MmMwLjI5LDAuMjMsMS42MywwLjk3LDIuMDIsMS40MQoJCQkJCQljMC40NSwwLjM5LDAuNjIsMC43MywwLjYyLDEuMTNjMCwwLjE2LDAuNjYsMC40OSwwLjgzLDAuMDVjMC4xNy0wLjYyLDAuMTEtMS40Ny0wLjM4LTIuMTNjLTAuNTEtMC42Ni0yLjA4LTAuNTYtMi41Ny0xLjA3CgkJCQkJCWMtMC40LTAuMzgtMC41Mi0wLjU2LTAuNjgtMC43MmMtMC4xNi0wLjExLTAuNTEtMC4xMS0wLjU3LDBDMTg5LjA1LDU5LjEyLDE4OS4wNSw1OS41NiwxODkuMzMsNTkuNjd6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE5NS40OCw2My40M2MwLjI5LDAuNDUsMC41NiwwLjUxLDAuOTYsMC4zNWMwLjI5LTAuMTgsMC41Ni0wLjY4LDAuMjMtMS4xMwoJCQkJCQljLTAuNTUtMC42Ni0xLjA2LTAuNTYtMS4yMy0wLjgzYy0wLjE3LTAuMzQtMC4yMy0wLjYyLTAuNTYtMC41NmMtMC4zNCwwLjA1LTAuMTcsMC41NiwwLjA2LDAuODMKCQkJCQkJQzE5NS41NSw2Mi44MiwxOTUuMjEsNjIuOTgsMTk1LjQ4LDYzLjQzeiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0yMDQuNzUsNjguOTljLTEuOTYtMC4xNi0zLjgxLDYuNjctNC4xNSwxMC40NGMtMC4wNiwwLjc4LDAuNSwxLjc5LDAuNSwxLjc5bDAuNDYtMC4wNAoJCQkJCQljMCwwLTAuMjMtMS4wOC0wLjE3LTEuNzVjMC4xNy0yLjg3LDIuOTYtOC41NCwzLjg4LTguNDdjMC4zOCwwLjA2LDAuMzIsMC4yOCwwLjM4LDAuNTFjMC4wNSwwLjExLDAuMzMsMC4wNSwwLjMzLDAuMDUKCQkJCQkJYzAuMTEtMC4xMiwwLjExLTAuMjgsMC4xMS0wLjQ1di0wLjM5QzIwNi4wNSw2OS44MywyMDUuNDMsNjkuMDQsMjA0Ljc1LDY4Ljk5eiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0yMDAuMDQsODMuMzVjMC4xNy0wLjA1LDAuNDktMC4yOCwwLjIyLTAuNDRjLTAuMjctMC4xNy0wLjQ5LTAuMzQtMC42Mi0wLjU2CgkJCQkJCWMtMC4xNi0wLjM0LTAuNzMtMC4yOS0xLjAxLDAuMTdjLTAuMzMsMC42Ni0wLjQ0LDEuMTctMC4yOCwyLjI5YzAuMTIsMC45NS0wLjExLDEuMzUtMC4xNiwxLjYzCgkJCQkJCWMtMC4xMiwwLjIzLTEuNDYsMC45NS0xLjc1LDEuNTdjLTAuMjgsMC43OS0wLjQ0LDEuNTctMC4yMiwyLjNjMC4wNSwwLjE3LDAuNDUsMC4zNCwwLjUxLTAuMDZjMC4wNS0wLjM0LDAuMjctMC44OSwwLjYyLTEuMjkKCQkJCQkJYzAuMzItMC4zMywwLjc4LTAuNzgsMS0xLjIzYzAuMzQtMC41NiwwLjU2LTEuNjksMC43My0yLjkzQzE5OS4yNSw4My45MSwxOTkuNzcsODMuNTIsMjAwLjA0LDgzLjM1eiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0yMDEuNjcsODYuMzJjLTAuNC0wLjA2LTEuNDEsMC4yMi0xLjksMC43OWMtMC41MiwwLjU1LTAuNjgsMC45NC0wLjQ2LDEuMDYKCQkJCQkJYzAuMjksMC4xMSwwLjU1LDAuMjIsMC41NSwwLjQ1YzAsMC4yMSwwLjI5LDAuNDQsMC40NiwwLjEyYzAuMTItMC4zNSwwLjQ1LTEuNTMsMS4xNy0xLjk3CgkJCQkJCUMyMDEuNzMsODYuNjYsMjAyLDg2LjMyLDIwMS42Nyw4Ni4zMnoiLz4KCQkJCQk8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMjAyLjEyLDg0LjA3Yy0wLjYyLTAuMTEtMS41OCwwLjU3LTEuNjgsMC43OWMtMC4xOCwwLjE3LTAuMDYsMC4zOSwwLjA5LDAuMzkKCQkJCQkJYzAuMTIsMC4wNiwwLjEyLDAuMjIsMC4xMiwwLjM0Yy0wLjA1LDAuMTYsMC4yOSwwLjQ0LDAuNCwwLjEyYzAuMDUtMC4xNywwLjczLTEuMDIsMS4wNi0xLjM1CgkJCQkJCUMyMDIuMjMsODQuMjUsMjAyLjE3LDg0LjA3LDIwMi4xMiw4NC4wN3oiLz4KCQkJCQk8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMTgwLjU3LDc3LjU3Yy0wLjA1LTAuMjMtMC4zNC0xLjk2LTAuMzQtMi41OGMwLTAuNjEsMC4yMi0xLjkxLDAuMTctMS45MWMtMC4yOC0wLjExLTAuNC0wLjE3LTAuNS0wLjQ1CgkJCQkJCWMtMC4wNi0wLjE3LTAuMTEtMC4yMi0wLjI0LTAuMjhjLTAuMTEsMC0wLjI3LTAuMTEtMC4yNy0wLjIzYzAtMC4xLTAuNDYtMC4yOC0wLjQ2LDBjLTAuMzQsMS45MSwwLjY3LDQuMjEsMS40LDUuNTUKCQkJCQkJQzE4MC40Niw3Ny45MSwxODAuNjQsNzcuNzksMTgwLjU3LDc3LjU3eiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0xNzUuNzUsNzYuNjdjMC4xLDAuMDYsMC4wNSwwLjE4LDAuMSwwLjI5YzAuMDUsMC4xMiwwLjIzLDAuMDUsMC40MS0wLjExYzAuMTctMC4xMiwwLjc3LTAuNjcsMS4yMy0xLjIzCgkJCQkJCWMwLjUtMC41NywwLjktMS43OSwwLjktMi4wOGMwLDAtMC4yOS0wLjEyLTAuMzQsMGMtMC4wNiwwLjEyLTAuNCwwLjczLTAuNzIsMS4wNmMtMC4zNCwwLjMzLTAuNTYsMC41MS0wLjksMC42MgoJCQkJCQljLTAuMzQsMC4xNy0wLjM5LDAuMzQtMC4zOSwwLjU2Yy0wLjA2LDAuMjMsMC4wNSwwLjE3LDAuMDUsMC4yOWMwLDAuMDYtMC4xOCwwLjMzLTAuMjMsMC4zOAoJCQkJCQlDMTc1Ljc1LDc2LjUxLDE3NS42Myw3Ni42MiwxNzUuNzUsNzYuNjd6Ii8+CgkJCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTE3OS4xNyw3OS4yNGMtMC4wNiwwLTAuMTEtMC4wNC0wLjIyLTAuMWMwLTEuMjQtMC4wNS0yLjMtMC4zNC0yLjkyYy0wLjE3LTAuNC0wLjQtMC41Mi0wLjYyLDAuMDUKCQkJCQkJYy0wLjI3LDAuNjctMC40NSwxLjQ2LTAuNjEsMi4yNGMtMS4wNi0wLjI3LTIuMDgtMC4yNy0yLjMsMC4xN2MtMC4xNiwwLjQ2LDAuNCwxLjEyLDEuMjQsMS4zMWMwLjI4LDAuMDQsMC41NiwwLjEsMC44NCwwLjE2CgkJCQkJCWMtMC4xMiwxLjE5LTAuMTIsMi40Ny0wLjEyLDMuNjVjLTEuMTgsMC42Mi0yLjQxLDEuMjQtMi40NywyLjI0YzAsMCwwLDAuMDYsMCwwLjEyYzAuMDUsMC43OCwxLjAyLDEuNCwxLjAyLDEuNTcKCQkJCQkJYzAsMC4xNiwwLjExLDAuNDksMCwwLjY2Yy0wLjEyLDAuMjMsMC4wNCwwLjI4LDAuMzksMC4xN2MwLjI5LTAuMTcsMC4zNC0wLjY3LDAuMzQtMS4wMWMwLTAuMzQtMC40MS0wLjg0LTAuMjgtMS40NgoJCQkJCQljMC4wNS0wLjU2LDAuNDQtMC45NSwwLjk5LTEuMzVjMC4wNiwxLjQxLDAuMTcsMi42OSwwLjIzLDMuNjVjMCwwLjU2LDAuMzksMC42MiwwLjUxLDAuMDZjMC4xNy0wLjk1LDAuNTEtMi42NCwwLjcyLTQuNDkKCQkJCQkJYzAuMjktMC4xMSwwLjUxLTAuMjIsMC42Ny0wLjM0YzAuOTYtMC41NiwxLjY5LTEuMTgsMS43NC0yLjA3YzAuMDUsMCwwLjA1LTAuMDYsMC4wNS0wLjA2di0wLjE2CgkJCQkJCUMxODAuOTEsODAuNTQsMTgwLjEzLDc5LjgxLDE3OS4xNyw3OS4yNHogTTE3OS4xNyw4Mi42MmMtMC4xMSwwLjExLTAuMjcsMC4yMi0wLjQ5LDAuMzNjMC4wNS0wLjc4LDAuMTUtMS42MSwwLjIyLTIuNDEKCQkJCQkJYzAuMTEsMC4wNiwwLjIxLDAuMTEsMC4yNywwLjE3YzAuMzQsMC4yMiwwLjUsMC41LDAuNSwwLjlDMTc5Ljc0LDgyLjAxLDE3OS41MSw4Mi4zNCwxNzkuMTcsODIuNjJ6Ii8+CgkJCQk8L2c+CgkJCTwvZz4KCQkJPGc+CgkJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMzkuOTgsNjQuOTVjLTEuMjItMS4wNy0yLjg2LTEuMDctNC40Mi0xLjA3Yy0wLjExLDAtNy4wMiwwLTcuMDIsMHYxOS43NWgzLjc2di03LjU3YzAsMCwzLjE5LDAsMy4yNiwwCgkJCQkJYzEuNjcsMCwzLjQ4LDAuMTIsNC44Mi0xLjNjMS4xOC0xLjIzLDEuOTctMy4wOSwxLjk3LTQuOTlDNDIuMzUsNjcuNzYsNDEuMzksNjYuMTMsMzkuOTgsNjQuOTV6IE0zOC4wOSw3Mi4zNgoJCQkJCWMtMC42MiwxLjE3LTEuNCwxLjE3LTIuMywxLjE3aC0zLjM3di03LjEyaDMuMzdjMC42NywwLDEuNDUsMCwyLjA4LDAuNzNjMC41LDAuNjcsMC43OSwxLjc1LDAuNzksMi44MQoJCQkJCUMzOC42NSw3MC44NCwzOC40OCw3MS42OCwzOC4wOSw3Mi4zNnoiLz4KCQkJCTxwb2x5Z29uIGNsYXNzPSJzdDIiIHBvaW50cz0iODguMDcsNzYuODkgODguMDcsODMuNjMgMTAwLjAyLDgzLjYzIDEwMC4wMiw4MS4xIDkxLjgyLDgxLjEgOTEuODIsNzQuNjUgOTkuNjMsNzQuNjUgCgkJCQkJOTkuNjMsNzIuMDcgOTEuODIsNzIuMDcgOTEuODIsNjYuNDEgMTAwLjAyLDY2LjQxIDEwMC4wMiw2My44OCA4OC4wNyw2My44OCA4OC4wNyw3MC42NyAJCQkJIi8+CgkJCQk8cG9seWdvbiBjbGFzcz0ic3QyIiBwb2ludHM9IjEzOC4yMSw2My44OCAxMTQuNjEsNjMuODggMTE0LjYxLDc3LjQ2IDEwMy42Nyw2My44OCAxMDMuNjcsNjMuODggMTAzLjYxLDYzLjg4IDEwMy42MSw2My44MiAKCQkJCQkxMDMuNjEsNjMuODggMTAwLjc1LDYzLjg4IDEwMC43NSw4My42MyAxMDMuNjcsODMuNjMgMTAzLjY3LDY5Ljg5IDExNC42MSw4My40NiAxMTQuNjEsODMuNjMgMTE3LjUyLDgzLjYzIDExNy41Miw2Ni40MSAKCQkJCQkxMjQuMzYsNjYuNDEgMTI0LjM2LDgzLjYzIDEyOC4xNyw4My42MyAxMjguMTcsNjYuNDEgMTM0LjQ3LDY2LjQxIDEzNC40Nyw4My42MyAxMzcuOTksODMuNjMgMTM4LjIxLDgzIAkJCQkiLz4KCQkJCTxwb2x5Z29uIGNsYXNzPSJzdDIiIHBvaW50cz0iMTYwLjYsODEuMSAxNjAuNiw2My44OCAxNTYuNzgsNjMuODggMTU2Ljc4LDgyLjE3IDE1Ny40MSw4My41OCAxNTYuNzgsODMuNTggMTU2Ljc4LDgzLjYzIAoJCQkJCTE2Ny43OCw4My42MyAxNjcuNzgsODEuMSAJCQkJIi8+CgkJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMTQ5LjIxLDYzLjg4bC0yLjEsMGwtMC44Ny0wLjA2TDEzOC4yMSw4M3YwLjYyaDIuOTNsMi4xMy01LjExaDcuOTdsMi4xMyw1LjExbDMuNDItMC4wNXYtMS40MQoJCQkJCUwxNDkuMjEsNjMuODh6IE0xNDQuMzMsNzZsMi45Mi03LjA2bDIuOTEsNy4wNkgxNDQuMzN6Ii8+CgkJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNNzcuNDEsNjMuODhoLTcuMTJsMCwwdjEzLjEzYzAsMC4xMiwwLDAuMjItMC4wNSwwLjMzbDAsMGMwLDAuMTIsMCwwLjIzLTAuMDYsMC40bDAsMAoJCQkJCWMwLDAuMTItMC4wNiwwLjIyLTAuMDYsMC4zNGMtMC4wNiwwLTAuMDYsMC4wNi0wLjA2LDAuMDZjMCwwLjEyLTAuMDQsMC4yMi0wLjExLDAuMzRjMCwwLDAsMCwwLDAuMDUKCQkJCQljLTAuMDUsMC4xMi0wLjExLDAuMTctMC4xNiwwLjI4YzAsMC4wNSwwLDAuMDUsMCwwLjEyYy0wLjA2LDAuMDUtMC4xMiwwLjE2LTAuMTcsMC4yOGMtMC4wNiwwLTAuMDYsMC4wNC0wLjA2LDAuMDQKCQkJCQljLTAuMDUsMC4xMy0wLjExLDAuMTgtMC4xNywwLjI5Yy0wLjA1LDAuMDUtMC4xMSwwLjA1LTAuMTEsMC4xMmMtMC4wNiwwLjA1LTAuMTIsMC4xNi0wLjE3LDAuMjJDNjkuMDUsNzkuOTMsNjksNzkuOTMsNjksNzkuOTkKCQkJCQljLTAuMTIsMC4wNC0wLjE4LDAuMS0wLjIzLDAuMTZjLTAuMDYsMC4wNi0wLjExLDAuMTEtMC4xNywwLjE3Yy0wLjA1LDAuMDYtMC4xMSwwLjExLTAuMTcsMC4xN2MtMC4wNSwwLTAuMSwwLjA1LTAuMTcsMC4xMgoJCQkJCWMtMC4wNiwwLjA1LTAuMTYsMC4xMS0wLjIzLDAuMTFjLTAuMDUsMC4wNi0wLjEsMC4xMS0wLjIzLDAuMTFjLTAuMDUsMC4wNS0wLjA5LDAuMTEtMC4xNSwwLjExQzY3LjU0LDgxLDY3LjQ4LDgxLDY3LjM3LDgxLjA0CgkJCQkJYy0wLjA2LDAuMDUtMC4xMSwwLjA1LTAuMjMsMC4wNWMtMC4wNiwwLjA4LTAuMTcsMC4wOC0wLjI4LDAuMTJjLTAuMDUsMC0wLjEyLDAuMDYtMC4yMiwwLjA2Yy0wLjEyLDAtMC4yMiwwLjA2LTAuMzQsMC4wNgoJCQkJCWMtMC4wNiwwLTAuMTEsMC0wLjE3LDBjLTAuMjMsMC4wNS0wLjM4LDAuMDUtMC42MiwwLjA1Yy0zLjIsMC01LjEtMi4zNi01LjEtNC41NFY2My44OEg1Ni42djExLjg5YzAsNy44MSw2LjksOC4yNiw4LjkyLDguMjYKCQkJCQljMC45MSwwLDIuOTItMC4xMiw0Ljc3LTEuMDhjMC40NS0wLjIyLDAuOS0wLjUsMS4yOS0wLjgzYzAsMCwwLTAuMDYsMC4wNi0wLjA2YzAuMDUtMC4wNSwwLjE3LTAuMTgsMC4yMi0wLjIzCgkJCQkJYzAuMDYtMC4wNCwwLjExLTAuMDQsMC4xMS0wLjExYzEuMTgtMS4xMSwxLjk3LTIuNzQsMi4xNC00LjkzbC0wLjA2LTEwLjM4aDIuNDJjNi4wNSwwLDcuOTEsMy45Miw3LjkxLDcuMTIKCQkJCQljMCwzLjI2LTEuNjQsNy41Ny03Ljk3LDcuNTdoLTIuMzZsLTAuNDUtMC4wNWMtMC4yMSwwLjM0LTAuNTEsMC43NC0wLjg0LDEuMDJjLTAuNjEsMC42Ny0xLjM1LDEuMTItMi4wOCwxLjUydjAuMDVoNy40MQoJCQkJCWM2LjI5LDAsOS4wMy0zLjI1LDkuOTktNi43M3YtNi4yMkM4Ny4wNiw2Ny4yLDg0LjAzLDYzLjg4LDc3LjQxLDYzLjg4eiIvPgoJCQkJPHBhdGggY2xhc3M9InN0MiIgZD0iTTUzLjY4LDc0LjQ4YzAuMjEtMC4xNywwLjQ1LTAuMzQsMC42Ny0wLjU2YzEuMTItMS4xNywxLjg1LTIuODYsMS45Ni00LjY1Yy0wLjE3LTEuOC0xLjA2LTMuMy0yLjMtNC4zOAoJCQkJCWMtMS4yOS0xLjA3LTIuOTYtMS4wNy00LjQ5LTEuMDdjLTAuMDUsMC03LjAxLDAtNy4wMSwwdjE5Ljc2aDMuODF2LTguMzFoMy4wOWMwLjA2LDAsMC4xMSwwLDAuMTEsMGgwLjE4bDUuMTYsOC4zMWg0LjQzCgkJCQkJTDUzLjY4LDc0LjQ4eiBNNTIuMTIsNzEuNTFjLTAuNjgsMS4xOC0xLjQ2LDEuMTgtMi4zNSwxLjE4aC0zLjM3di02LjM1aDMuMzdjMC43MiwwLDEuNDYsMCwyLjA3LDAuNzkKCQkJCQljMC40LDAuNSwwLjY2LDEuMjksMC43MywyLjEzaDAuMDRDNTIuNTcsNzAuMTIsNTIuNDYsNzAuODksNTIuMTIsNzEuNTF6Ii8+CgkJCTwvZz4KCQk8L2c+CgkJPGc+CgkJCTxyZWN0IHg9IjI4LjYyIiB5PSI5My4zOCIgY2xhc3M9InN0MSIgd2lkdGg9IjE3Ni44NCIgaGVpZ2h0PSIwLjkiLz4KCQk8L2c+CgkJPGc+CgkJCTxnPgoJCQkJPHBhdGggY2xhc3M9InN0NCIgZD0iTTM2LjMzLDMzLjExYzYuNDYtNi42NiwxNC4yNi04LjM2LDE3LjM4LTMuODJjMy4xMyw0LjU1LDAuNDIsMTMuNjUtNi4wNiwyMC4zMQoJCQkJCWMtNi40Niw2LjY0LTE0LjI3LDguMzUtMTcuMzksMy44MkMyNy4xNSw0OC44NywyOS44NywzOS43NywzNi4zMywzMy4xMUwzNi4zMywzMy4xMXoiLz4KCQkJCTxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik00MC41OSwyOS41OGMtMC42NiwwLjU0LTEuNDIsMS4xNi0yLjEyLDEuODljLTUuNjYsNS43OS04LjAxLDEzLjczLTUuMjIsMTcuNwoJCQkJCWMyLjg2LDMuOTksOS44NSwyLjU1LDE1LjU4LTMuMzNjMy4wOC0zLjE0LDUuMi02Ljc3LDYuMDUtMTAuMTZjMC4yNi0yLjUtMC4wOS00LjcxLTEuMTgtNi4zOQoJCQkJCUM1MS4yMywyNS43OSw0NS45LDI2LjA3LDQwLjU5LDI5LjU4TDQwLjU5LDI5LjU4eiIvPgoJCQkJPGc+CgkJCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTQ4LjM3LDI5LjM1YzAuNzYsMC43OSwwLjI5LDIuNDktMSwzLjg2Yy0xLjMxLDEuMzItMi45OCwxLjgtMy43LDEuMDNjLTAuNzgtMC43OC0wLjM0LTIuNSwwLjk2LTMuODYKCQkJCQkJQzQ1Ljk0LDI5LjAyLDQ3LjYzLDI4LjYxLDQ4LjM3LDI5LjM1TDQ4LjM3LDI5LjM1eiIvPgoJCQkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik00My44MSw1Mi44NmMtMy4wNSwyLjM0LTYuMDgsMy41MS05LjEzLDMuMDRjMS40Mi0wLjAzLDIuMjUtMS4zOCwzLjA4LTMuMzYKCQkJCQkJYzAuODctMi4wNSwxLjM5LTMuOTIsMS43OS01LjY3YzAuNjItMi43OSwwLjY1LTQuNzYsMC4zNy01LjJjLTAuNTMtMC43Mi0xLjcyLTAuNTQtMy4wNSwwLjI3Yy0wLjY0LDAuMzYtMS40NywwLjEzLTAuNDgtMS4xNAoJCQkJCQljMS4wMi0xLjI4LDUuMDQtNC4zMSw2LjQ5LTQuNzljMS41OC0wLjQ4LDMuNCwwLjE3LDIuNzksMS45OEM0NS4yNSwzOS4zLDM5LjYsNTQuMzUsNDMuODEsNTIuODZMNDMuODEsNTIuODZ6Ii8+CgkJCQk8L2c+CgkJCTwvZz4KCQkJPGc+CgkJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNjMuMjQsMzMuMTFoNi44Mkw2NC43LDUzLjA4aC02LjgyTDYzLjI0LDMzLjExeiIvPgoJCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTk4LjI3LDMzLjExaDYuODJsLTUuMzUsMTkuOTdoLTYuODJMOTguMjcsMzMuMTF6Ii8+CgkJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTMzLjMsMzMuMTFoNi44MWwtNS4zNSwxOS45N2gtNi44MUwxMzMuMywzMy4xMXoiLz4KCQkJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik04My42NSwzNy4xM2MtMy4zMywwLTUuODIsMi4xNy02Ljg4LDYuMTNjLTEuMDIsMy43OSwwLjI4LDUuODgsMy41OCw1Ljg4YzIuNDIsMCw0LjIxLTEuMTcsNS4xNy0zLjQ0aDYuODYKCQkJCQljLTEuODcsNS4xMy02LjIxLDcuNDEtMTMuNTcsNy40MWMtNy4yOSwwLTEwLjQ0LTMuNjItOC44NC05LjU5YzEuNzYtNi41OCw3LjAyLTEwLjM3LDE0Ljc2LTEwLjM3YzYuNjksMCw5LjU4LDIuMzEsOC42OCw2LjgKCQkJCQloLTYuODNDODYuNzMsMzguMDcsODUuNzUsMzcuMTMsODMuNjUsMzcuMTN6Ii8+CgkJCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTE4LjY4LDM3LjEzYy0zLjMzLDAtNS44MywyLjE3LTYuODgsNi4xM2MtMS4wMiwzLjc5LDAuMjgsNS44OCwzLjU4LDUuODhjMi40MiwwLDQuMjEtMS4xNyw1LjE3LTMuNDQKCQkJCQloNi44NmMtMS44Nyw1LjEzLTYuMjIsNy40MS0xMy41Nyw3LjQxYy03LjI4LDAtMTAuNDQtMy42Mi04Ljg1LTkuNTljMS43Ny02LjU4LDcuMDItMTAuMzcsMTQuNzYtMTAuMzcKCQkJCQljNi42OSwwLDkuNiwyLjMxLDguNjksNi44aC02LjgzQzEyMS43NiwzOC4wNywxMjAuNzgsMzcuMTMsMTE4LjY4LDM3LjEzeiIvPgoJCQk8L2c+CgkJPC9nPgoJPC9nPgo8L2c+Cjwvc3ZnPgo=" alt="ICICI Prudential Alternate Investments"/>
+      </div>
+      <div className="masthead-bars">
+        <div className="appbar-row">
+          <span className="wm-sub">Real Estate Fund</span>
+          <div className="appbar-spacer"></div>
+          <div className="ctrl-row">
+        <div className="pill-select" onClick={e=>e.stopPropagation()}>
+          <div className="pill" onClick={()=>setOpenA(v=>!v)}>
+            <span className="dot" style={{background: assetColorOf(asset)}}></span>
+            {aObj?.name}
+            <span style={{fontSize:9,color:'var(--ink-3)',marginLeft:2}}>▾</span>
+          </div>
+          {openA && (
+            <div className="dropdown">
+              {assets.map(a=>(
+                <div key={a.id} className="dd-item" onClick={()=>{onAsset(a.id);setOpenA(false);}}>
+                  <span className="dot" style={{background:assetColorOf(a.id)}}></span>{a.name}
+                  <span className="tnum" style={{marginLeft:'auto',fontSize:11,color:'var(--ink-3)'}}>{a.occupancy}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="seg">
+          <button className={theme==='light'?'on':''} onClick={()=>onTheme('light')}>Light</button>
+          <button className={theme==='dark'?'on':''} onClick={()=>onTheme('dark')}>Dark</button>
+          </div>
+        </div>
+        </div>
+        <TabNav nav={nav} active={active} onNav={onNav}/>
+      </div>
+    </header>
+  );
+}
+
+/* ---------- Tab navigation ---------- */
+function TabNav({ nav, active, onNav }){
+  return (
+    <div className="tabbar">
+      {nav.map(n=>(
+        <button key={n.id} className={"tab"+(active===n.id?" active":"")} onClick={()=>onNav(n.id)}>{n.tab}</button>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Page header ---------- */
+function PageHead({ kicker, title }){
+  return (
+    <div className="page-head">
+      <div>
+        <div className="page-kicker">{kicker}</div>
+        <h1 className="page-title">{title}</h1>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- KPI ---------- */
+function Kpi({ label, value, unit, foot, trend, trendDir }){
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value tnum">{value}{unit && <span className="unit">{unit}</span>}</div>
+      {(foot||trend) && <div className="kpi-foot">
+        {trend && <span className={"trend "+(trendDir||'up')}>{trendDir==='down'?'▾':'▴'} {trend}</span>}
+        {foot && <span>{foot}</span>}
+      </div>}
+    </div>
+  );
+}
+
+/* ---------- Panel ---------- */
+function Panel({ title, sub, right, children, pad=true, style }){
+  return (
+    <div className="panel" style={style}>
+      {(title||right) && <div className="panel-head">
+        <div>{title && <div className="panel-title">{title}</div>}{sub && <div className="panel-sub">{sub}</div>}</div>
+        {right}
+      </div>}
+      <div className="panel-body" style={pad?null:{padding:0}}>{children}</div>
+    </div>
+  );
+}
+
+/* ---------- Badge ---------- */
+const STATUS_MAP = {
+  "Complied":"ok","OK":"ok","Low":"ok",
+  "Due Soon":"warn","In Progress":"info","Medium":"warn",
+  "Revision Required":"danger","High":"danger",
+  "Not Due":"muted","Not Applicable":"muted","NA":"muted",
+};
+function Badge({ children, kind }){
+  const k = kind || STATUS_MAP[children] || "muted";
+  return <span className={"badge "+k}><span className="bdot" style={{background:'currentColor'}}></span>{children}</span>;
+}
+
+/* ---------- Sortable / filterable DataTable ---------- */
+function DataTable({ columns, rows, totalRow, searchable=true, initialSort }){
+  const [q,setQ]=uS("");
+  const [sort,setSort]=uS(initialSort||{key:null,dir:1});
+  const filtered = uM(()=>{
+    let r=rows;
+    if(q.trim()){ const s=q.toLowerCase(); r=r.filter(row=>columns.some(c=>String(row[c.key]??'').toLowerCase().includes(s))); }
+    if(sort.key){ const c=columns.find(c=>c.key===sort.key);
+      r=[...r].sort((a,b)=>{ let av=a[sort.key],bv=b[sort.key];
+        if(c&&c.num){ av=parseFloat(av)||0; bv=parseFloat(bv)||0; return (av-bv)*sort.dir; }
+        return String(av).localeCompare(String(bv))*sort.dir; }); }
+    return r;
+  },[q,sort,rows,columns]);
+  const toggle=k=>setSort(s=>s.key===k?{key:k,dir:-s.dir}:{key:k,dir:1});
+  return (
+    <div>
+      {searchable && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,gap:12,flexWrap:'wrap'}}>
+        <div className="search"><input placeholder="Filter…" value={q} onChange={e=>setQ(e.target.value)}/></div>
+        <span className="uplabel">{filtered.length} of {rows.length} rows</span>
+      </div>}
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr>
+            {columns.map(c=>(
+              <th key={c.key} className={(c.num?'num ':'')+(c.noSort?'no-sort ':'')+(sort.key===c.key?'sorted':'')}
+                onClick={()=>!c.noSort&&toggle(c.key)}>
+                {c.label}{!c.noSort && <span className="sort-ar">{sort.key===c.key?(sort.dir>0?'▲':'▼'):'⇅'}</span>}
+              </th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {filtered.map((row,i)=>(
+              <tr key={i}>
+                {columns.map(c=>(
+                  <td key={c.key} className={c.num?'num':''}>{c.render?c.render(row[c.key],row):row[c.key]}</td>
+                ))}
+              </tr>
+            ))}
+            {totalRow && <tr className="total-row">
+              {columns.map((c,i)=>(<td key={c.key} className={c.num?'num':''}>{totalRow[c.key]??(i===0?'Total':'')}</td>))}
+            </tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { TopBar, TabNav, PageHead, Kpi, Panel, Badge, DataTable, assetColorOf });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   SECTIONS — Portfolio (Investment Summary) + Executive Summary
+   ===================================================================== */
+const assetColor = id => (window.DASH.assetColors||{})[id]||'var(--ink-3)';
+
+/* ============================ INVESTMENT / PORTFOLIO ============================ */
+function InvestmentSection({ asset }){
+  const D = window.DASH, P = D.portfolio;
+  // Portfolio Overview is always the full-portfolio rollup, regardless of the
+  // asset dropdown (which drives the per-asset detail tabs).
+  const filtered = D.assets;
+  const head = {
+    rent:P.monthlyRent, occ:P.occupancy, gross:P.grossBilling, coll:P.collections,
+    leasable:P.area.leasable, leased:P.area.leased, vacant:P.area.vacant
+  };
+
+  const tableRows = filtered.map(a=>({
+    name:a.name, id:a.id, leasable:a.leasable, leased:a.leased, vacant:a.vacant, occupancy:a.occupancy, monthlyRent:a.monthlyRent
+  }));
+  const totals = filtered.reduce((t,a)=>({leasable:t.leasable+a.leasable,leased:t.leased+a.leased,vacant:t.vacant+a.vacant,monthlyRent:t.monthlyRent+a.monthlyRent}),{leasable:0,leased:0,vacant:0,monthlyRent:0});
+  const totOcc = (totals.leased/totals.leasable*100);
+
+  return (
+    <div className="fade-in">
+      {/* KPI strip */}
+      <div className="grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+        <Kpi label="Monthly Rent" value={fmtCr(head.rent)} accent="var(--brand-maroon)" icon="invest" foot="across portfolio"/>
+        <Kpi label="Occupancy" value={head.occ} unit="%" accent="var(--brand-orange)" icon="grid" foot="leased of leasable"/>
+        <Kpi label="CAM Charge" value={`₹${P.camCharge}`} unit="/sf" accent="var(--d3)" foot="weighted average"/>
+        <Kpi label="Gross Billing" value={fmtCr(head.gross)} accent="var(--d4)" foot="incl. taxes"/>
+        <Kpi label="Collections" value={fmtCr(head.coll)} accent="var(--d5)" foot="collection efficiency"/>
+      </div>
+
+      {/* main grid */}
+      <div className="grid" style={{gridTemplateColumns:'1.55fr 1fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Assets Summary" sub={`${D.meta.reportMonth} · ${filtered.length} ${filtered.length>1?'assets':'asset'}`} pad={false}>
+          <div style={{padding:'0 4px 4px'}}>
+          <DataTable
+            searchable={false}
+            initialSort={{key:'monthlyRent',dir:-1}}
+            columns={[
+              {key:'name',label:'Asset',render:(v,r)=><span className="achip"><span className="dot" style={{background:assetColor(r.id)}}></span>{v}</span>},
+              {key:'leasable',label:'Leasable',num:true,render:v=>v.toFixed(2)+'M'},
+              {key:'leased',label:'Leased',num:true,render:v=>v.toFixed(2)+'M'},
+              {key:'vacant',label:'Vacant',num:true,render:v=>v.toFixed(2)+'M'},
+              {key:'occupancy',label:'Occ. %',num:true,render:v=><b style={{color:v>90?'var(--ok)':v>80?'var(--warn)':'var(--danger)'}}>{v}%</b>},
+              {key:'monthlyRent',label:'Monthly Rent',num:true,render:v=>fmtCr(v)},
+            ]}
+            rows={tableRows}
+            totalRow={{name:'Total',leasable:totals.leasable.toFixed(2)+'M',leased:totals.leased.toFixed(2)+'M',vacant:totals.vacant.toFixed(2)+'M',occupancy:totOcc.toFixed(1)+'%',monthlyRent:fmtCr(totals.monthlyRent)}}
+          />
+          </div>
+        </Panel>
+
+        <Panel title="Portfolio Occupancy" sub="leased vs leasable">
+          <div style={{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',justifyContent:'center'}}>
+            <Donut value={head.occ} label="Occupied" color="var(--brand-orange)" size={146}/>
+            <div style={{flex:1,minWidth:150,display:'flex',flexDirection:'column',gap:14}}>
+              <AreaStat label="Leasable Area" value={`${head.leasable}M`} unit="sft" color="var(--ink-3)"/>
+              <AreaStat label="Leased Area" value={`${head.leased}M`} unit="sft" color="var(--brand-maroon)"/>
+              <AreaStat label="Vacant Area" value={`${head.vacant}M`} unit="sft" color="var(--vacant)"/>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr 1fr 1fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Rent Spread" sub="leased area by rate band">
+          <DistBars data={P.rentSpread}/>
+        </Panel>
+        <Panel title="Revenue Composition" sub={`excl. taxes · ₹${Math.round(P.revenueComposition.reduce((a,d)=>a+(d.value||0),0))}Cr total`}>
+          <RevComposition data={P.revenueComposition}/>
+        </Panel>
+        <Panel title="Monthly Rent by Asset" sub="₹Cr contribution">
+          <HBars data={D.assets.map(a=>({name:a.name,value:a.monthlyRent,color:assetColor(a.id)}))} />
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function AreaStat({ label, value, unit, color }){
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:11}}>
+      <span style={{width:10,height:10,borderRadius:3,background:color,flexShrink:0}}></span>
+      <div style={{flex:1}}>
+        <div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>{label}</div>
+        <div className="tnum" style={{fontSize:18,fontWeight:700,letterSpacing:'-.02em'}}>{value}<span style={{fontSize:11,color:'var(--ink-2)',fontWeight:600,marginLeft:3}}>{unit}</span></div>
+      </div>
+    </div>
+  );
+}
+
+function RevComposition({ data }){
+  const total = data.reduce((a,d)=>a+d.value,0);
+  const colors=['var(--brand-maroon)','var(--brand-orange)','var(--d3)','var(--d5)'];
+  const [on,setOn]=React.useState(false);
+  React.useEffect(()=>{const t=setTimeout(()=>setOn(true),50);return ()=>clearTimeout(t);},[]);
+  return (
+    <div>
+      <div style={{display:'flex',height:18,borderRadius:6,overflow:'hidden',marginBottom:16}}>
+        {data.map((d,i)=>(
+          <div key={i}
+            onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${colors[i]}"></span><span class="tip-k">${d.label}</span></div><b>${fmtCr(d.value)} · ${Math.round(d.value/total*100)}%</b>`,e.clientX,e.clientY)}
+            onMouseLeave={hideTip}
+            style={{width:on?`${d.value/total*100}%`:'0%',background:colors[i],transition:`width .32s cubic-bezier(.2,.8,.2,1) ${i*.08}s`,cursor:'default'}}/>
+        ))}
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:11}}>
+        {data.map((d,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{width:10,height:10,borderRadius:3,background:colors[i]}}></span>
+            <span style={{fontSize:12.5,fontWeight:600,flex:1}}>{d.label}</span>
+            <span className="mono tnum" style={{fontSize:11.5,color:'var(--ink-2)'}}>{fmtCr(d.value)}</span>
+            <span className="mono tnum" style={{fontSize:11,color:'var(--ink-3)',width:38,textAlign:'right'}}>{Math.round(d.value/total*100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ EXECUTIVE SUMMARY ============================ */
+function ExecutiveSection({ asset }){
+  const D = window.DASH;
+  const aId = asset;
+  const aMeta = D.assets.find(a=>a.id===aId) || D.assets[0];
+  const E = D.executive[aId] || {topTenants:[],rentalPsfTrend:[],billedVsActual:[]};
+  const bva = E.billedVsActual || [];
+  const billedAvg = bva.length ? bva.reduce((a,b)=>a+(b.billed||0),0)/bva.length : null;
+  const lastActual = bva.length ? bva[bva.length-1].actual : null;
+  const collEff = (E.grossBilling) ? Math.round(E.collection/E.grossBilling*100) : null;
+  const leasedPct = (E.totalArea) ? Math.round(E.leasedArea/E.totalArea*100) : 0;
+  const dash = '—';
+
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'1.1fr 1fr 1fr 1fr'}}>
+        <Panel title="Project Overview" sub={E.address}>
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div>
+              <div className="tnum" style={{fontSize:26,fontWeight:700,letterSpacing:'-.03em',lineHeight:1}}>{E.leasableSft!=null?E.leasableSft.toLocaleString('en-IN'):dash}</div>
+              <div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:5}}>sft leasable area</div>
+            </div>
+            <div style={{display:'flex',gap:18}}>
+              <div><div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>WALE</div><div style={{fontSize:18,fontWeight:700}} className="tnum">{E.wale!=null?E.wale:dash} <span style={{fontSize:11,color:'var(--ink-2)'}}>yrs</span></div></div>
+              <div><div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>Asset</div><div style={{marginTop:3}}><span className="achip"><span className="dot" style={{background:assetColor(aId)}}></span>{aMeta.name}</span></div></div>
+            </div>
+          </div>
+        </Panel>
+        <Kpi label="Rent to be Billed" value={billedAvg!=null?fmtCr(billedAvg):dash} accent="var(--brand-maroon)" foot="monthly avg · w/o tax"/>
+        <Kpi label="Actual Billed" value={lastActual!=null?fmtCr(lastActual):dash} accent="var(--brand-orange)" foot="latest month"/>
+        <Kpi label="Collection Efficiency" value={collEff!=null?collEff:dash} unit={collEff!=null?'%':''} accent="var(--ok)" foot={`${fmtCr(E.collection)} of ${fmtCr(E.grossBilling)}`}/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1.4fr 1fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Rent to be Billed vs Actual" sub="₹Cr · without tax">
+          {bva.length
+            ? <VBars data={bva} series={[{key:'billed',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actual',name:'Actual Billed',color:'var(--brand-orange)'}]} unit="cr"/>
+            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No billing data for this asset.</div>}
+        </Panel>
+        <Panel title="Top Tenants" sub="by monthly rent · ₹Cr">
+          {E.topTenants.length
+            ? <HBars data={E.topTenants.map(t=>({name:t.name,value:t.rent}))}/>
+            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No tenant data for this asset.</div>}
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1.4fr 1fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Current & Future Avg Rental PSF" sub="₹/sf · weighted average">
+          {(E.rentalPsfTrend||[]).length
+            ? <LineChart data={E.rentalPsfTrend} xKey="q" series={[{key:'psf',name:'Avg Rent ₹/sf',color:'var(--brand-orange)'}]} unit="psf"/>
+            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No rental PSF data for this asset.</div>}
+        </Panel>
+        <Panel title="Status-wise Area" sub="million sq.ft">
+          <div style={{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',justifyContent:'center'}}>
+            <Donut value={leasedPct} label="Leased" color="var(--brand-maroon)" size={146}/>
+            <div style={{flex:1,minWidth:150,display:'flex',flexDirection:'column',gap:14}}>
+              <AreaStat label="Total Area" value={`${E.totalArea!=null?E.totalArea:dash}M`} unit="sft" color="var(--ink-3)"/>
+              <AreaStat label="Leased Area" value={`${E.leasedArea!=null?E.leasedArea:dash}M`} unit="sft" color="var(--brand-maroon)"/>
+              <AreaStat label="Vacant Area" value={`${E.vacantArea!=null?E.vacantArea:dash}M`} unit="sft" color="var(--vacant)"/>
+            </div>
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { InvestmentSection, ExecutiveSection, assetColor });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   SECTIONS — Financial Summary + Expense vs Collection
+   ===================================================================== */
+
+/* ============================ FINANCIAL SUMMARY ============================ */
+function FinancialSection({ asset }){
+  const D = window.DASH;
+  const F = D.financial[asset] || {openingBalance:0,totalInflow:0,totalOutflow:0,closingBalance:0,sources:[],usage:[],businessPlan:[],accounts:[]};
+  const assetName = (D.assets.find(a=>a.id===asset)||{}).name || asset;
+  const flow = [
+    { label:'Opening Balance', value:F.openingBalance, kind:'open' },
+    { label:'Total Inflow', value:F.totalInflow, kind:'in' },
+    { label:'Total Outflow', value:F.totalOutflow, kind:'out' },
+    { label:'Closing Balance', value:F.closingBalance, kind:'close' },
+  ];
+  return (
+    <div className="fade-in">
+      {/* cashflow equation */}
+      <Panel title="Cash Position" sub={`${D.meta.reportMonth} · ${assetName} · ₹Cr`}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'clamp(12px,2.4vw,30px)',flexWrap:'wrap',padding:'8px 0 4px'}}>
+          {flow.map((f,i)=>(
+            <React.Fragment key={i}>
+              <div style={{textAlign:'center',display:'flex',flexDirection:'column',gap:6,
+                ...(f.kind==='close'?{padding:'10px 18px',background:'color-mix(in srgb,var(--brand-maroon) 8%,var(--surface))',border:'1px solid color-mix(in srgb,var(--brand-maroon) 30%,transparent)',borderRadius:'var(--radius)'}:{})}}>
+                <div className="mono" style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-3)'}}>{f.label}</div>
+                <div className="tnum" style={{fontSize:23,fontWeight:700,letterSpacing:'-.02em',lineHeight:1,
+                  color: f.kind==='in'?'var(--ok)':f.kind==='out'?'var(--danger)':f.kind==='close'?'var(--brand-maroon)':'var(--ink)'}}>
+                  {fmtCr(f.value)}
+                </div>
+              </div>
+              {i<flow.length-1 && <div style={{fontSize:22,color:'var(--ink-3)',fontWeight:400,lineHeight:1}}>{i===0?'+':i===1?'−':'='}</div>}
+            </React.Fragment>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr 1fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Sources of Funds" sub="₹Cr inflow">
+          <HBars data={F.sources.map(s=>({name:s.label,value:s.value,color:'var(--ok)'}))} height={150}/>
+          <div className="divider" style={{margin:'14px 0'}}></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Grand Total</span><span className="mono tnum" style={{fontWeight:700,color:'var(--ok)'}}>{fmtCr(F.sources.reduce((a,b)=>a+b.value,0))}</span></div>
+        </Panel>
+        <Panel title="Usage of Funds" sub="₹Cr outflow">
+          <HBars data={F.usage.map(s=>({name:s.label,value:s.value,color:'var(--danger)'}))} height={150}/>
+          <div className="divider" style={{margin:'14px 0'}}></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Grand Total</span><span className="mono tnum" style={{fontWeight:700,color:'var(--danger)'}}>–{fmtCr(F.usage.reduce((a,b)=>a+b.value,0))}</span></div>
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Business Plan vs Actual Collections" sub="₹Cr · trailing 6 months">
+          <VBars data={F.businessPlan} series={[{key:'planned',name:'Planned',color:'var(--d3)'},{key:'actual',name:'Actual',color:'var(--brand-orange)'}]} unit="cr" height={260}/>
+        </Panel>
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Cash Flow</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable
+            searchable={false}
+            initialSort={{key:'close',dir:-1}}
+            columns={[
+              {key:'acct',label:'Asset',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
+              {key:'open',label:'Opening',num:true,render:v=>fmtCr(v)},
+              {key:'collections',label:'Collections',num:true,render:v=>fmtCr(v)},
+              {key:'inflow',label:'Other Inflow',num:true,render:v=>fmtCr(v)},
+              {key:'close',label:'Closing',num:true,render:v=><b>{fmtCr(v)}</b>},
+            ]}
+            rows={F.accounts}
+          />
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================ EXPENSE vs COLLECTION ============================ */
+function ExpenseSection({ asset }){
+  const D = window.DASH;
+  const X = D.expenses[asset] || {monthly:[], billedVsActual:[]};
+  const totals = X.monthly.reduce((t,m)=>({coll:t.coll+m.collection,cam:t.cam+m.cam,debt:t.debt+m.debt,opex:t.opex+m.opex}),{coll:0,cam:0,debt:0,opex:0});
+  const totExp = totals.cam+totals.debt+totals.opex;
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <Kpi label="Total Collections" value={fmtCr(totals.coll)} accent="var(--ok)" icon="finance" foot="trailing 6 months"/>
+        <Kpi label="Total Expenses" value={fmtCr(totExp)} accent="var(--danger)" icon="expense" foot="CAM + Debt + OPEX"/>
+        <Kpi label="Net Surplus" value={fmtCr(totals.coll-totExp)} trend={Math.abs(Math.round((totals.coll-totExp)/totals.coll*100))+'%'} trendDir={totals.coll-totExp>=0?'up':'down'} foot="collection less expense"/>
+        <Kpi label="Cost-to-Collection" value={Math.round(totExp/totals.coll*100)} unit="%" accent="var(--d3)" foot="expense ratio"/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Expense vs Collection" sub="₹Cr · collections vs stacked expense categories">
+          <ExpenseCombo data={X.monthly}/>
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Rent to be Billed vs Actual" sub="₹Cr · without tax">
+          <LineChart data={X.billedVsActual} series={[{key:'billed',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actual',name:'Actual Billed',color:'var(--brand-orange)'}]} unit="cr" height={240}/>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/* collections line overlaid on stacked expense bars */
+function ExpenseCombo({ data }){
+  const wrapRef=React.useRef(null); const [w,setW]=React.useState(800); const [on,setOn]=React.useState(false);
+  React.useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); const t=setTimeout(()=>setOn(true),60); return ()=>{window.removeEventListener('resize',r);clearTimeout(t);}; },[]);
+  const series=[{key:'cam',name:'CAM',color:'var(--d2)'},{key:'debt',name:'Debt',color:'var(--brand-maroon)'},{key:'opex',name:'OPEX',color:'var(--d5)'}];
+  const height=330,padL=48,padR=16,padT=16,padB=30;
+  const expTot=data.map(d=>d.cam+d.debt+d.opex);
+  const rawMax=Math.max(...data.map(d=>d.collection),...expTot);
+  const max=Math.ceil(rawMax/100)*100*1.05;
+  const plotW=w-padL-padR, plotH=height-padT-padB;
+  const slot=plotW/data.length;
+  const barW=Math.min(26, slot*0.26);
+  const gap=Math.min(10, slot*0.06);
+  const Y=v=>padT+plotH-v/max*plotH;
+  const baseY=padT+plotH;
+  return (
+    <div ref={wrapRef}>
+      <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} style={{display:'block',overflow:'visible'}}>
+        {Array.from({length:5}).map((_,i)=>{ const v=max*i/4,y=Y(v);
+          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={padL-8} y={y+3} fontSize="9.5" fill="var(--ink-3)" fontFamily="var(--mono)" textAnchor="end">{'₹'+Math.round(v)}</text></g>; })}
+        {data.map((d,i)=>{ const cx=padL + slot*i + slot/2; const tot=expTot[i]; let acc=0;
+          const collX=cx-barW-gap/2, expX=cx+gap/2;
+          const tip=`<div class="tip-row"><span class="tip-k">${d.m}</span></div><div class="tip-row"><span class="tdot" style="background:var(--ok)"></span><span>Collection</span> <b style="margin-left:auto">${fmtCr(d.collection)}</b></div>`+series.map(s=>`<div class="tip-row"><span class="tdot" style="background:${s.color}"></span><span>Expense · ${s.name}</span> <b style="margin-left:auto">${fmtCr(d[s.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.18);padding-top:4px"><span class="tip-k">Total Expense</span> <b style="margin-left:auto">${fmtCr(tot)}</b></div>`;
+          return (
+            <g key={i} onMouseMove={e=>showTip(tip,e.clientX,e.clientY)} onMouseLeave={hideTip} style={{cursor:'default'}}>
+              {/* collection bar */}
+              <rect x={collX} y={on?Y(d.collection):baseY} width={barW} height={on?baseY-Y(d.collection):0} fill="var(--ok)" rx="3" style={{transition:`all .32s cubic-bezier(.2,.8,.2,1) ${i*.05}s`}}/>
+              {/* stacked expense bar — single rounded top via clip, square segments */}
+              <defs><clipPath id={'ec'+i}><rect x={expX} y={Y(tot)} width={barW} height={baseY-Y(tot)} rx="3"/></clipPath></defs>
+              <g clipPath={`url(#ec${i})`}>
+              {series.map((s,si)=>{ const segH=d[s.key]/max*plotH; const y=baseY-(acc+d[s.key])/max*plotH; acc+=d[s.key];
+                return <rect key={si} x={expX} y={on?y:baseY} width={barW} height={on?segH:0} fill={s.color} rx={0} style={{transition:`all .32s cubic-bezier(.2,.8,.2,1) ${i*.05+si*.02}s`}}/>; })}
+              </g>
+              <text x={cx} y={height-10} fontSize="9.5" fill="var(--ink-3)" textAnchor="middle" fontFamily="var(--mono)">{d.m}</text>
+            </g>
+          ); })}
+      </svg>
+      <div className="legend" style={{marginTop:10,paddingLeft:padL}}>
+        <div className="li"><span className="sw" style={{background:'var(--ok)'}}></span>Collections</div>
+        <span style={{color:'var(--ink-3)',fontSize:11}}>Expense:</span>
+        {series.map((s,i)=>(<div key={i} className="li"><span className="sw" style={{background:s.color}}></span>{s.name}</div>))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { FinancialSection, ExpenseSection });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   SECTIONS — Stack Plan + Tenant Profile
+   ===================================================================== */
+
+/* ============================ STACK PLAN ============================ */
+function StackSection({ asset }){
+  const D = window.DASH;
+  const aId = asset;
+  const S = (D.stackPlan&&D.stackPlan[aId]) || {asset:aId,legend:[],floors:[]};
+  const pickName = (D.assets.find(a=>a.id===aId)||{}).name || S.asset;
+  const [hl,setHl]=React.useState(null); // highlighted category
+  const catColor = key => (S.legend.find(l=>l.key===key)||{}).color;
+  const totalK = S.floors.flatMap(f=>f.units).reduce((a,u)=>a+u.k,0);
+  const vacantK = S.floors.flatMap(f=>f.units).filter(u=>u.cat==='vacant').reduce((a,u)=>a+u.k,0);
+  // floor max width for proportional sizing
+  const floorTotals = S.floors.map(f=>f.units.reduce((a,u)=>a+u.k,0));
+  const maxFloor = Math.max(...floorTotals);
+
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <Kpi label="Asset" value={pickName} accent={assetColor(aId)} icon="stack"/>
+        <Kpi label="Total Floor Area" value={totalK} unit="K sft" accent="var(--brand-maroon)"/>
+        <Kpi label="Vacant Area" value={vacantK} unit="K sft" accent="var(--warn)" foot={`${totalK ? Math.round(vacantK/totalK*100) : 0}% of stack`}/>
+        <Kpi label="Floors" value={S.floors.length} accent="var(--d3)" foot="leasable floors"/>
+      </div>
+
+      <Panel title="Stacking Plan" sub={`${pickName} · grouped by industry`} style={{marginTop:18}}
+        right={<div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+          <div className="legend">{S.legend.map(l=>(
+          <div key={l.key} className="li" style={{cursor:'pointer',opacity:hl&&hl!==l.key?.4:1}}
+            onMouseEnter={()=>setHl(l.key)} onMouseLeave={()=>setHl(null)}>
+            <span className="sw" style={{background:l.color}}></span>{l.label}
+          </div>))}</div>
+        </div>}>
+        <div style={{display:'flex',flexDirection:'column',gap:9}}>
+          {S.floors.length===0 && <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No stacking data for this asset.</div>}
+          {S.floors.map(f=>{ const ft=f.units.reduce((a,u)=>a+u.k,0);
+            return (
+              <div key={f.floor} style={{display:'flex',alignItems:'center',gap:14}}>
+                <div style={{width:54,flexShrink:0,textAlign:'right'}}>
+                  <div className="mono" style={{fontSize:9,color:'var(--ink-3)',letterSpacing:'.1em'}}>FLOOR</div>
+                  <div style={{fontSize:20,fontWeight:700,lineHeight:1}} className="tnum">{f.floor}</div>
+                </div>
+                <div style={{flex:1,display:'flex',gap:5,height:54,width:`${ft/maxFloor*100}%`}}>
+                  {f.units.map((u,i)=>{ const dim = hl && hl!==u.cat;
+                    return (
+                      <div key={i}
+                        onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${catColor(u.cat)}"></span><span class="tip-k">${(S.legend.find(l=>l.key===u.cat)||{}).label}</span></div><b>${u.t}</b><div style="opacity:.7;margin-top:2px">${u.k}K sft</div>`,e.clientX,e.clientY)}
+                        onMouseLeave={hideTip}
+                        style={{flex:u.k,minWidth:0,borderRadius:7,padding:'8px 11px',display:'flex',flexDirection:'column',justifyContent:'center',cursor:'default',
+                          background: u.cat==='vacant'?'repeating-linear-gradient(45deg,var(--vacant),var(--vacant) 7px,transparent 7px,transparent 14px)':catColor(u.cat),
+                          border: u.cat==='vacant'?'1px dashed var(--ink-3)':'none',
+                          color: u.cat==='vacant'?'var(--ink-2)':'#fff',
+                          opacity:dim?.25:1, transition:'opacity .2s', overflow:'hidden'}}>
+                        <div style={{fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.t}</div>
+                        <div className="mono" style={{fontSize:10,opacity:.85,whiteSpace:'nowrap'}}>{u.k}K sft</div>
+                      </div>
+                    ); })}
+                </div>
+              </div>
+            ); })}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================ TENANT PROFILE ============================ */
+function TenantSection({ asset }){
+  const D = window.DASH;
+  const aId = asset;
+  const T = (D.tenant&&D.tenant[aId]) || {asset:aId,topTenants:[],effectiveLed:'—',leaseExpiry:[]};
+  const top0 = T.topTenants[0];
+  const totalExpiry = T.leaseExpiry.reduce((a,d)=>a+d.sft,0);
+  const maxExpiry = T.leaseExpiry.length ? Math.max(...T.leaseExpiry.map(d=>d.sft)) : 0;
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <Kpi label="Asset" value={(D.assets.find(a=>a.id===aId)||{}).name || T.asset} accent={assetColor(aId)} icon="tenant"/>
+        <Kpi label="Top Tenant" value={top0 ? top0.name : '—'} accent="var(--brand-maroon)" foot={top0 ? `${fmtCr(top0.rent)} / month` : 'No tenants on record'}/>
+        <Kpi label="Area Expiring" value={(totalExpiry/1000).toFixed(0)} unit="K sft" accent="var(--warn)" foot="across all quarters"/>
+        <Kpi label="Effective LED" value={T.effectiveLed || '—'} accent="var(--d3)" icon="clock" foot="lease end date"/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr 1.6fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Top Tenants" sub="by monthly rent · ₹Cr">
+          {T.topTenants.length
+            ? <HBars data={T.topTenants.map(t=>({name:t.name,value:t.rent}))}/>
+            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No tenant data for this asset.</div>}
+        </Panel>
+        <Panel title="Upcoming Lease Expiry" sub="sq.ft expiring by quarter">
+          <ExpiryChart data={T.leaseExpiry}/>
+        </Panel>
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Lease Expiry Schedule</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable
+            initialSort={{key:'sft',dir:-1}}
+            columns={[
+              {key:'q',label:'Quarter',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
+              {key:'sft',label:'Area Expiring (sft)',num:true,render:v=>v.toLocaleString('en-IN')},
+              {key:'share',label:'Share of Total',num:true,render:(_,r)=>(r.sft/(totalExpiry||1)*100).toFixed(1)+'%'},
+              {key:'bar',label:'',noSort:true,render:(_,r)=><div style={{height:8,width:120,background:'var(--surface-3)',borderRadius:5,overflow:'hidden'}}><div style={{height:'100%',width:`${r.sft/(maxExpiry||1)*100}%`,background:'var(--brand-orange)',borderRadius:5}}></div></div>},
+            ]}
+            rows={T.leaseExpiry.filter(d=>d.sft>0)}
+          />
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function ExpiryChart({ data }){
+  const [on,setOn]=React.useState(false);
+  React.useEffect(()=>{const t=setTimeout(()=>setOn(true),50);return ()=>clearTimeout(t);},[]);
+  if(!data.length) return <div style={{height:230,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--ink-3)'}}>No lease expiry data.</div>;
+  const max=Math.max(...data.map(d=>d.sft))*1.12||1;
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:230,paddingTop:8}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:7,height:'100%',justifyContent:'flex-end'}}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.q}</span></div><b>${d.sft.toLocaleString('en-IN')} sft</b>`,e.clientX,e.clientY)}
+          onMouseLeave={hideTip}>
+          {d.sft>0 && <span className="mono tnum" style={{fontSize:9.5,color:'var(--ink-2)'}}>{(d.sft/1000).toFixed(0)}K</span>}
+          <div style={{width:'100%',maxWidth:30,height:on?`${d.sft/max*100}%`:'0%',minHeight:d.sft>0?2:0,
+            background:'var(--brand-maroon)',
+            borderRadius:'4px 4px 0 0',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.04}s`,cursor:'default'}}/>
+          <span className="mono" style={{fontSize:8.5,color:'var(--ink-3)',transform:'rotate(-35deg)',whiteSpace:'nowrap',height:14}}>{d.q}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, { StackSection, TenantSection });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   SECTIONS — Approvals + Compliance Register
+   ===================================================================== */
+
+/* ============================ APPROVALS ============================ */
+function ApprovalSection({ asset }){
+  const D = window.DASH;
+  const aId = asset;
+  const A = (D.approvals&&D.approvals[aId]) || {asset:aId,asOf:null,rows:[],summary:{complied:0,revisionRequired:0}};
+  const total = A.summary.complied + A.summary.revisionRequired;
+  const compliedPct = total ? A.summary.complied/total*100 : 0;
+  const revisionPct = total ? A.summary.revisionRequired/total*100 : 0;
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <Kpi label="Total Approvals" value={total} accent="var(--brand-maroon)" icon="approval" foot={A.asOf ? `${A.asset} · as of ${A.asOf}` : A.asset}/>
+        <Kpi label="Complied" value={A.summary.complied} accent="var(--ok)" foot={`${Math.round(compliedPct)}% of approvals`}/>
+        <Kpi label="Revision Required" value={A.summary.revisionRequired} accent="var(--danger)" foot="action needed"/>
+        <div className="kpi" style={{"--accent":"var(--brand-orange)"}}>
+          <div className="kpi-label">Compliance Health</div>
+          <div style={{marginTop:14,height:12,borderRadius:6,background:'var(--surface-3)',overflow:'hidden',display:'flex'}}>
+            <div style={{width:`${compliedPct}%`,background:'var(--ok)'}}></div>
+            <div style={{width:`${revisionPct}%`,background:'var(--danger)'}}></div>
+          </div>
+          <div className="kpi-foot" style={{justifyContent:'space-between'}}>
+            <span style={{color:'var(--ok)',fontWeight:600}}>{A.summary.complied} ok</span>
+            <span style={{color:'var(--danger)',fontWeight:600}}>{A.summary.revisionRequired} flagged</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Approval Register</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable
+            columns={[
+              {key:'desc',label:'Approval Description',render:v=><span style={{fontWeight:600}}>{v}</span>},
+              {key:'authority',label:'Issuing Authority',render:v=><span style={{color:'var(--ink-2)',fontSize:12}}>{v}</span>},
+              {key:'issued',label:'Issued',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
+              {key:'validity',label:'Validity',render:v=><span className="mono" style={{fontSize:11,color:v==='Not Applicable'?'var(--ink-3)':'var(--ink)'}}>{v}</span>},
+              {key:'risk',label:'Risk',render:v=><Badge>{v}</Badge>},
+              {key:'status',label:'Status',render:v=><Badge>{v}</Badge>},
+            ]}
+            rows={A.rows}
+          />
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================ COMPLIANCE REGISTER ============================ */
+function ComplianceSection({ asset }){
+  const D = window.DASH;
+  const aId = asset;
+  const C = (D.compliance&&D.compliance[aId]) || {asset:aId,asOf:null,rows:[],summary:{inProgress:0,dueSoon:0,ok:0,notDue:0,na:0}};
+  const s = C.summary;
+  const cards = [
+    { label:'In Progress', value:s.inProgress, color:'var(--info)', kind:'info' },
+    { label:'Due Soon', value:s.dueSoon, color:'var(--warn)', kind:'warn' },
+    { label:'OK', value:s.ok, color:'var(--ok)', kind:'ok' },
+    { label:'Not Due', value:s.notDue, color:'var(--ink-3)', kind:'muted' },
+    { label:'Not Applicable', value:s.na, color:'var(--ink-3)', kind:'muted' },
+  ];
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+        {cards.map((c,i)=>(
+          <div key={i} className="kpi" style={{"--accent":c.color}}>
+            <div className="kpi-label">{c.label}</div>
+            <div className="kpi-value tnum">{c.value}</div>
+            <div className="kpi-foot"><Badge kind={c.kind}>{c.label}</Badge></div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Compliance Register · {C.asset}{C.asOf ? ` · as of ${C.asOf}` : ''}</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable
+            columns={[
+              {key:'item',label:'Compliance Item',render:v=><span style={{fontWeight:600}}>{v}</span>},
+              {key:'cat',label:'Category',render:v=><span style={{fontSize:12,color:'var(--ink-2)'}}>{v}</span>},
+              {key:'freq',label:'Frequency',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
+              {key:'due',label:'Due Date',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
+              {key:'who',label:'Responsible',render:v=><span style={{fontSize:12}}>{v}</span>},
+              {key:'risk',label:'Consequence of Non-Compliance',render:v=><span style={{fontSize:11.5,color:'var(--ink-2)'}}>{v}</span>},
+              {key:'rag',label:'RAG Status',render:v=><Badge>{v}</Badge>},
+            ]}
+            rows={C.rows}
+          />
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+Object.assign(window, { ApprovalSection, ComplianceSection });
+
+</script>
+
+<script type="text/babel">
+/* =====================================================================
+   APP — top-tab navigation, page header, theme + asset filter
+   ===================================================================== */
+const NAV = [
+  { id:'invest',     tab:'Investment',  title:'Investment Summary',     kicker:'Portfolio Performance', comp:'InvestmentSection' },
+  { id:'exec',       tab:'Executive',   title:'Executive Summary',      kicker:'Asset Overview',        comp:'ExecutiveSection' },
+  { id:'finance',    tab:'Financial',   title:'Financial Summary',      kicker:'Cash & Treasury',       comp:'FinancialSection' },
+  { id:'expense',    tab:'Expenses',    title:'Expense vs Collection',  kicker:'Cost & Recovery',       comp:'ExpenseSection' },
+  { id:'stack',      tab:'Stack Plan',  title:'Stack Plan',             kicker:'Space & Occupancy',     comp:'StackSection' },
+  { id:'tenant',     tab:'Tenants',     title:'Tenant Profile',         kicker:'Tenancy',               comp:'TenantSection' },
+  { id:'approval',   tab:'Approvals',   title:'Approval Summary',       kicker:'Statutory Approvals',   comp:'ApprovalSection' },
+  { id:'compliance', tab:'Compliance',  title:'Compliance Register',    kicker:'Compliance',            comp:'ComplianceSection' },
+];
+
+function App(){
+  const [active,setActive] = React.useState(()=>localStorage.getItem('dash_nav')||'invest');
+  const [asset,setAsset]   = React.useState(()=>{
+    const ids = (window.DASH.assets||[]).map(a=>a.id);
+    const saved = localStorage.getItem('dash_asset');
+    return ids.includes(saved) ? saved : (ids[0]||null);
+  });
+  const [theme,setTheme]   = React.useState(()=>localStorage.getItem('dash_theme')||'light');
+
+  React.useEffect(()=>{ document.documentElement.setAttribute('data-theme',theme); localStorage.setItem('dash_theme',theme); },[theme]);
+  React.useEffect(()=>{ localStorage.setItem('dash_nav',active); window.hideTip&&window.hideTip(); window.scrollTo(0,0); },[active]);
+  React.useEffect(()=>{ localStorage.setItem('dash_asset',asset); },[asset]);
+
+  const cur = NAV.find(n=>n.id===active) || NAV[0];
+  const SectionComp = window[cur.comp];
+  const D = window.DASH;
+
+  return (
+    <div className="frame">
+      <TopBar assets={D.assets} asset={asset} onAsset={setAsset} theme={theme} onTheme={setTheme} month={D.meta.reportMonth} nav={NAV} active={active} onNav={setActive}/>
+      <div className="content">
+        <PageHead kicker={cur.kicker} title={cur.title} asset={asset} assets={D.assets} month={D.meta.reportMonth}/>
+        {SectionComp ? <SectionComp asset={asset} key={active+asset+theme}/> : <div>Section not found</div>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
+</script>
+
+</body>
+</html>
