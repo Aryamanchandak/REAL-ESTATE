@@ -12,6 +12,6 @@ __pycache__/
 *.xlsx
 
 # Generated and historical artifacts
-engine/output/*.html
+views/real_estate_dashboard/engine/output/*.html
 archive/
 *.zip

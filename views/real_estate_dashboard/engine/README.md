@@ -25,10 +25,10 @@ Use Python 3.9 or newer:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r engine/requirements.txt
+python3 -m pip install -r views/real_estate_dashboard/engine/requirements.txt
 ```
 
-Place the current workbook at `engine/data/real_estate_fund_data.xlsx`. Workbooks are
+Place the current workbook at `views/real_estate_dashboard/engine/data/real_estate_fund_data.xlsx`. Workbooks are
 ignored because they may contain confidential data.
 
 The reader (`src/ingest.py`) expects the simplified 9-asset workbook: it reads
@@ -42,20 +42,26 @@ build and listed on the dashboard's Data Quality tab.
 ## Build the static dashboard
 
 ```bash
-python3 engine/src/build_dashboard.py
+python3 views/real_estate_dashboard/engine/src/build_dashboard.py
 ```
 
 The generated file is written to `engine/output/dashboard.html`. Custom paths may be
 supplied as positional arguments:
 
 ```bash
-python3 engine/src/build_dashboard.py INPUT.xlsx TEMPLATE.html OUTPUT.html
+python3 views/real_estate_dashboard/engine/src/build_dashboard.py INPUT.xlsx TEMPLATE.html OUTPUT.html
 ```
 
 ## Run the Streamlit prototype
 
 ```bash
-streamlit run engine/src/app.py
+streamlit run views/real_estate_dashboard/engine/src/app.py
+```
+
+## Run the dashboard builder app
+
+```bash
+streamlit run views/real_estate_dashboard/app.py
 ```
 
 ## Test
@@ -64,5 +70,5 @@ The regression suite requires the local workbooks under `data/` and
 `tests/fixtures/`, plus Node.js for the embedded JSX compilation check.
 
 ```bash
-python3 -m unittest discover -s engine/tests
+python3 -m unittest discover -s views/real_estate_dashboard/engine/tests
 ```
