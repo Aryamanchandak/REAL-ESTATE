@@ -1,0 +1,71 @@
+# ICICI Prudential house theme for every Streamlit app in this repo.
+#
+# Colours and typeface were lifted from the live brand stylesheet at
+# https://www.icicipruamc.com/static/css/index.CmJaN2Ir.css — navy #133359 and
+# orange #DC6009 are the two dominant values there, and the site sets
+# `font-family: Mulish` on every rule. engine/src/theme.py mirrors these.
+#
+# Typography is deliberately single-weight: Mulish SemiBold (600) only. One
+# face is loaded and every weight slot is pinned to 600 so nothing renders
+# lighter or synthesises a fake bold.
+
+[theme]
+base                           = "light"
+
+primaryColor                   = "#DC6009"   # brand orange — buttons, focus rings
+backgroundColor                = "#FCFCFA"   # brand off-white page
+secondaryBackgroundColor       = "#F1F4F8"   # cards, dropzone, code blocks
+textColor                      = "#133359"   # brand navy ink
+linkColor                      = "#DC6009"
+borderColor                    = "#E0E6EE"
+dataframeBorderColor           = "#E0E6EE"
+dataframeHeaderBackgroundColor = "#EDF1F6"
+
+# Semantic colours, also brand-sourced where the brand defines one.
+greenColor                     = "#267D00"
+redColor                       = "#C8190A"
+orangeColor                    = "#DC6009"
+yellowColor                    = "#FFA217"
+blueColor                      = "#133359"
+grayColor                      = "#75838E"
+
+chartCategoricalColors = [
+  "#133359",  # navy
+  "#DC6009",  # orange
+  "#5A718B",  # slate
+  "#267D00",  # green
+  "#FFA217",  # amber
+  "#96191F",  # maroon
+  "#8FA3B8",  # pale slate
+]
+
+# ── Typography: Mulish SemiBold, and nothing else ────────────────────────────
+font               = "Mulish"
+headingFont        = "Mulish"
+codeFont           = "Mulish"
+baseFontSize       = 15
+baseFontWeight     = 600
+codeFontWeight     = 600
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+
+# ── Shape ────────────────────────────────────────────────────────────────────
+baseRadius       = "0.6rem"
+buttonRadius     = "0.5rem"
+showWidgetBorder = true
+
+# Two faces share family+weight+style, so each MUST carry its own unicodeRange —
+# without one the later declaration wins outright and the latin subset (i.e. all
+# ordinary text) never loads. Ranges are copied from the Google Fonts CSS2 sheet.
+[[theme.fontFaces]]
+family       = "Mulish"
+url          = "https://fonts.gstatic.com/s/mulish/v18/1Ptyg83HX_SGhgqO0yLcmjzUAuWexU1W8aevG547LTdNwA.woff2"
+weight       = 600
+style        = "normal"
+unicodeRange = "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+
+[[theme.fontFaces]]
+family       = "Mulish"
+url          = "https://fonts.gstatic.com/s/mulish/v18/1Ptyg83HX_SGhgqO0yLcmjzUAuWexU1W8amvG547LTdNwPak.woff2"
+weight       = 600
+style        = "normal"
+unicodeRange = "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF"

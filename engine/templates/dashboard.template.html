@@ -173,7 +173,9 @@ body{
 .seg button.on{ background:var(--ink); color:var(--surface); }
 
 .pill-select{ position:relative; }
-.pill{ display:flex; align-items:center; gap:9px; background:transparent; border:1px solid var(--line); border-radius:var(--radius-s); padding:7px 12px; cursor:pointer; font-size:12.5px; font-weight:500; color:var(--ink); transition:.16s; }
+.pill{ display:flex; align-items:center; gap:9px; background:transparent; border:1px solid var(--line); border-radius:var(--radius-s); padding:7px 12px; cursor:pointer; font-family:var(--font); font-size:12.5px; font-weight:500; color:var(--ink); transition:.16s; }
+.pill-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; }
+.pill:focus-visible,.seg button:focus-visible,.tab:focus-visible,.link:focus-visible{ outline:2px solid var(--brand-orange); outline-offset:2px; }
 .pill:hover{ border-color:var(--ink-3); }
 .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
@@ -208,6 +210,7 @@ body{
 .kpi-label{ text-transform:uppercase; letter-spacing:.13em; font-size:11px; font-weight:500; color:var(--ink-3); display:flex; align-items:center; gap:7px; }
 .kpi-value{ font-family:var(--serif); font-size:clamp(24px,2.1vw,33px); font-weight:600; letter-spacing:-.02em; margin-top:14px; line-height:1; white-space:nowrap; }
 .kpi-value .unit{ font-size:.46em; font-weight:500; color:var(--ink-2); margin-left:3px; font-family:var(--font); }
+.kpi-value.kpi-text{ font-size:18px; white-space:normal; line-height:1.25; }
 .kpi-foot{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line-2); font-size:12.5px; color:var(--ink-2); display:flex; align-items:center; gap:7px; }
 .trend{ font-weight:600; font-size:11.5px; display:inline-flex; align-items:center; gap:3px; }
 .trend.up{ color:var(--ok); }
@@ -236,7 +239,7 @@ table.tbl tr.total-row td{ font-weight:600; border-top:1px solid var(--line); bo
 .badge.info{ background:color-mix(in srgb,var(--info) 13%,transparent); color:var(--info); }
 .badge.muted{ background:var(--surface-3); color:var(--ink-3); }
 
-.achip{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:500; }
+.achip{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:500; white-space:nowrap; }
 .achip .dot{ width:8px; height:8px; border-radius:2px; }
 
 .search{ display:flex; align-items:center; gap:8px; background:transparent; border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 12px; }
@@ -258,15 +261,68 @@ table.tbl tr.total-row td{ font-weight:600; border-top:1px solid var(--line); bo
 .fade-in{ opacity:1; }
 .muted{ color:var(--ink-3); }
 .divider{ height:1px; background:var(--line); margin:0; border:none; }
+.boot-state{ min-height:100vh; display:grid; place-items:center; padding:32px; color:var(--ink-2); text-align:center; }
+.boot-state b{ color:var(--ink); }
+
+.empty{ display:flex; align-items:center; justify-content:center; text-align:center; color:var(--ink-3); font-size:12.5px; padding:24px 12px; line-height:1.5; }
+.note{ margin-top:14px; padding:10px 12px; border:1px solid color-mix(in srgb,var(--warn) 35%,transparent); background:color-mix(in srgb,var(--warn) 8%,transparent); border-radius:var(--radius-s); font-size:12px; color:var(--ink-2); line-height:1.5; }
+.stat-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; }
+.stat .k{ text-transform:uppercase; letter-spacing:.1em; font-size:9.5px; font-weight:500; color:var(--ink-3); }
+.stat .v{ font-size:14px; font-weight:600; margin-top:4px; line-height:1.35; overflow-wrap:anywhere; }
+.map-frame{ width:100%; height:260px; border:0; border-radius:var(--radius-s); display:block; background:var(--surface-2); }
+.asset-img{ width:100%; height:260px; object-fit:cover; border-radius:var(--radius-s); display:block; }
+.img-placeholder{ height:260px; border:1px dashed var(--line); border-radius:var(--radius-s); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--ink-3); font-size:12px; text-align:center; padding:16px; background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 8px,transparent 8px,transparent 16px); }
+.link{ color:var(--ink); text-decoration:underline; text-decoration-color:var(--brand-orange); text-underline-offset:3px; font-size:12.5px; font-weight:500; white-space:nowrap; }
+.asset-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+.asset-card{ border:1px solid var(--line-2); border-radius:var(--radius-s); padding:14px 16px; }
+.warn-list{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:8px; font-size:12.5px; color:var(--ink-2); line-height:1.5; }
+
+/* Inline grid definitions keep desktop layouts precise; these guarded
+   overrides prevent KPI cards and charts from overflowing on smaller screens. */
+@media (max-width:1100px){
+  :root{ --gutter:24px; }
+  .grid{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .masthead-brand{ padding-left:24px; padding-right:24px; }
+  .appbar-row,.tabbar{ padding-left:24px; padding-right:24px; }
+}
+@media (max-width:700px){
+  :root{ --gutter:16px; }
+  .masthead{ position:relative; flex-direction:column; }
+  .masthead-brand{ justify-content:center; border-right:0; border-bottom:1px solid var(--line); padding:6px 16px; }
+  .brand-logo{ height:64px; }
+  .appbar-row{ height:auto; min-height:58px; padding:10px 16px; flex-wrap:wrap; gap:10px; }
+  .wm-sub{ display:none; }
+  .ctrl-row{ width:100%; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .pill{ max-width:100%; }
+  .pill-text{ max-width:52vw; }
+  .pill-select{ min-width:0; }
+  .tabbar{ justify-content:flex-start; padding:0 8px; }
+  .tab{ padding-left:12px; padding-right:12px; }
+  .content{ padding-top:28px; }
+  .grid{ grid-template-columns:minmax(0,1fr) !important; }
+  .panel-head{ flex-direction:column; }
+  .kpi-value{ white-space:normal; overflow-wrap:anywhere; }
+}
 
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div class="boot-state">Loading dashboard…</div></div>
+<noscript><div class="boot-state"><b>JavaScript is required to view this dashboard.</b></div></noscript>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- Browser runtime is embedded by build_dashboard.py. Keeping it local makes
+     the generated file work from file:// in Safari and on restricted networks. -->
+<script>__REACT_LIBRARY__</script>
+<script>__REACT_DOM_LIBRARY__</script>
+<script>__BABEL_LIBRARY__</script>
+<script>
+window.addEventListener('load',()=>setTimeout(()=>{
+  const root=document.getElementById('root');
+  if(root && (!window.React || !window.ReactDOM || !window.Babel || root.querySelector('.boot-state'))){
+    root.innerHTML='<div class="boot-state"><div><b>Dashboard runtime could not be initialized.</b><br/>Rebuild the dashboard and try opening it again.</div></div>';
+  }
+},800));
+</script>
 
 <!-- Data (plain JS, no Babel needed) -->
 <script>
@@ -306,16 +362,76 @@ function showTip(html, x, y){
 function hideTip(){ const el=document.getElementById('__chartTip'); if(el) el.style.opacity=0; }
 window.showTip = showTip; window.hideTip = hideTip;
 
-const fmtCr  = v => (v<0?'-':'') + '₹' + (Math.round(Math.abs(v)*10)/10).toLocaleString('en-IN') + 'Cr';
-const fmtNum = v => v.toLocaleString('en-IN');
+const num = v => Number.isFinite(Number(v)) ? Number(v) : 0;
+const isBlank = v => v===null||v===undefined||v===''||!Number.isFinite(Number(v));
+/* Asset-level amounts are often below ₹1Cr, so small values keep two decimals. */
+const fmtCr  = v => {
+  if(isBlank(v)) return '—';
+  const a=Math.abs(num(v)), d=a<10?2:1;
+  return (num(v)<0?'-':'') + '₹' + a.toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d}) + 'Cr';
+};
+const fmtNum = v => isBlank(v) ? '—' : num(v).toLocaleString('en-IN');
+const fmtSft = v => isBlank(v) ? '—' : Math.round(num(v)).toLocaleString('en-IN');
+const fmtKsft = v => isBlank(v) ? '—' : (num(v)/1000).toLocaleString('en-IN',{maximumFractionDigits:1})+'K';
+const fmtFixed = (v, decimals=2, suffix='') => (v===null||v===undefined||!Number.isFinite(Number(v))) ? '—' : num(v).toFixed(decimals)+suffix;
+const niceStep = raw => {
+  if(!Number.isFinite(raw)||raw<=0) return 1;
+  const power=Math.pow(10,Math.floor(Math.log10(raw)));
+  const fraction=raw/power;
+  const niceFraction=fraction<=1?1:fraction<=2?2:fraction<=5?5:10;
+  return niceFraction*power;
+};
+const niceScale = (values,{includeZero=true,tickCount=4,padRatio=.08}={}) => {
+  const finite=values.map(num).filter(Number.isFinite);
+  if(!finite.length) return {min:0,max:1,ticks:[0,.25,.5,.75,1]};
+  let lo=Math.min(...finite),hi=Math.max(...finite);
+  if(includeZero){lo=Math.min(0,lo);hi=Math.max(0,hi);}
+  if(includeZero&&lo===0&&hi===0) return {min:0,max:1,ticks:[0,.2,.4,.6,.8,1]};
+  if(lo===hi){
+    const delta=Math.abs(lo)*.12||1;
+    lo=includeZero?Math.min(0,lo-delta):lo-delta;
+    hi=hi+delta;
+  }else{
+    const pad=(hi-lo)*padRatio;
+    if(!includeZero) lo-=pad;
+    hi+=pad;
+  }
+  const step=niceStep((hi-lo)/tickCount);
+  const min=includeZero&&lo>=0?0:Math.floor(lo/step)*step;
+  const max=Math.max(min+step,Math.ceil(hi/step)*step);
+  const tickLength=Math.max(2,Math.round((max-min)/step)+1);
+  const ticks=Array.from({length:tickLength},(_,i)=>min+step*i);
+  return {min,max,ticks};
+};
+const fmtAxis = v => {
+  const n=num(v),a=Math.abs(n);
+  if(a>=1000000) return (n/1000000).toLocaleString('en-IN',{maximumFractionDigits:1})+'M';
+  if(a>=1000) return (n/1000).toLocaleString('en-IN',{maximumFractionDigits:1})+'K';
+  return n.toLocaleString('en-IN',{maximumFractionDigits:a<1?2:a<10?1:0});
+};
 const cssVar = c => (c && c.startsWith('--')) ? `var(${c})` : c;
-window.fmtCr = fmtCr; window.fmtNum = fmtNum;
+const escHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+})[ch]);
+window.fmtCr = fmtCr; window.fmtNum = fmtNum; window.fmtFixed = fmtFixed; window.fmtSft = fmtSft; window.fmtKsft = fmtKsft;
+window.niceScale = niceScale; window.fmtAxis = fmtAxis;
+
+function useChartReveal(){
+  const [on,setOn]=useState(false);
+  useEffect(()=>{
+    let raf2;
+    const raf1=requestAnimationFrame(()=>{raf2=requestAnimationFrame(()=>setOn(true));});
+    return ()=>{cancelAnimationFrame(raf1);if(raf2)cancelAnimationFrame(raf2);};
+  },[]);
+  return on;
+}
 
 /* ================= DONUT / GAUGE ================= */
 function Donut({ value, label, sub, color="var(--brand-maroon)", size=168, track="var(--surface-3)", thickness=14, center }){
   const [p,setP] = useState(0);
-  useEffect(()=>{ let raf2; const raf1=requestAnimationFrame(()=>{ raf2=requestAnimationFrame(()=>setP(value)); });
-    return ()=>{ cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); }; },[value]);
+  const safeValue=Math.max(0,Math.min(100,num(value)));
+  useEffect(()=>{ let raf2; const raf1=requestAnimationFrame(()=>{ raf2=requestAnimationFrame(()=>setP(safeValue)); });
+    return ()=>{ cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); }; },[safeValue]);
   const r=(size-thickness)/2, c=2*Math.PI*r, off=c*(1-p/100);
   return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
@@ -327,7 +443,7 @@ function Donut({ value, label, sub, color="var(--brand-maroon)", size=168, track
             style={{transition:'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)'}}/>
         </svg>
         <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-          <div style={{fontSize:Math.round(size*.19),fontWeight:700,letterSpacing:'-.03em',lineHeight:1}} className="tnum">{center ?? (value+'%')}</div>
+          <div style={{fontSize:Math.round(size*.19),fontWeight:700,letterSpacing:'-.03em',lineHeight:1}} className="tnum">{center ?? (safeValue+'%')}</div>
           {label && <div className="mono" style={{fontSize:9.5,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:5}}>{label}</div>}
         </div>
       </div>
@@ -338,16 +454,17 @@ function Donut({ value, label, sub, color="var(--brand-maroon)", size=168, track
 
 /* ================= HORIZONTAL BARS ================= */
 function HBars({ data, color="var(--brand-maroon)", unit="cr", height, valFmt }){
-  const [on,setOn]=useState(false);
-  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
-  const max=Math.max(...data.map(d=>d.value))*1.08;
+  const on=useChartReveal();
+  const {max}=niceScale(data.map(d=>d.value));
   const fmt = valFmt || (unit==='cr'?fmtCr:fmtNum);
-  const h = height ?? Math.max(160, data.length*42);
+  const dense=data.length>8;
+  const gap=dense?8:13;
+  const h = height ?? Math.max(170,Math.min(420,data.length*(dense?28:42)));
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:13,height:h,justifyContent:'center'}}>
+    <div style={{display:'flex',flexDirection:'column',gap,minHeight:h,justifyContent:'center'}}>
       {data.map((d,i)=>(
         <div key={i}
-          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(d.color||color)}"></span><span class="tip-k">${d.name||d.label}</span></div><b>${fmt(d.value)}</b>`, e.clientX, e.clientY)}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(d.color||color)}"></span><span class="tip-k">${escHtml(d.name||d.label)}</span></div><b>${fmt(d.value)}</b>`, e.clientX, e.clientY)}
           onMouseLeave={hideTip}
           style={{cursor:'default'}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
@@ -355,7 +472,7 @@ function HBars({ data, color="var(--brand-maroon)", unit="cr", height, valFmt })
             <span className="mono tnum" style={{fontSize:11.5,color:'var(--ink-2)'}}>{fmt(d.value)}</span>
           </div>
           <div style={{height:9,borderRadius:5,background:'var(--surface-3)',overflow:'hidden'}}>
-            <div style={{height:'100%',borderRadius:5,width:on?`${d.value/max*100}%`:'0%',
+            <div style={{height:'100%',borderRadius:5,width:on?`${num(d.value)/max*100}%`:'0%',
               background:cssVar(d.color||color),
               transition:`width .32s cubic-bezier(.2,.8,.2,1) ${i*.06}s`}}/>
           </div>
@@ -367,29 +484,31 @@ function HBars({ data, color="var(--brand-maroon)", unit="cr", height, valFmt })
 
 /* ================= VERTICAL GROUPED BARS ================= */
 function VBars({ data, series, height=240, unit="cr", yTicks=4 }){
-  const [on,setOn]=useState(false);
-  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const on=useChartReveal();
   const fmt = unit==='cr'?fmtCr:fmtNum;
-  const max = Math.max(...data.flatMap(d=>series.map(s=>d[s.key])))*1.12;
+  if(!data.length) return <div style={{height,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--ink-3)'}}>No data available.</div>;
+  const scale=niceScale(data.flatMap(d=>series.map(s=>d[s.key])),{tickCount:yTicks});
+  const max=scale.max;
   const padB=26, padT=8, plotH=height-padB-padT;
-  const ticks=Array.from({length:yTicks+1},(_,i)=>max*i/yTicks);
+  const tickLabels=scale.ticks.map(fmtAxis);
+  const padL=Math.max(34,Math.max(...tickLabels.map(x=>x.length))*6+10);
   return (
     <div>
       <div style={{display:'flex',height,position:'relative'}}>
         <div style={{position:'absolute',inset:`${padT}px 0 ${padB}px 0`,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
-          {ticks.slice().reverse().map((t,i)=>(<div key={i} style={{borderTop:'1px solid var(--grid)',position:'relative'}}>
-            <span className="mono" style={{position:'absolute',left:0,top:-7,fontSize:9,color:'var(--ink-3)'}}>{Math.round(t)}</span>
+          {scale.ticks.slice().reverse().map((t,i)=>(<div key={i} style={{borderTop:'1px solid var(--grid)',position:'relative'}}>
+            <span className="mono" style={{position:'absolute',left:0,top:-7,fontSize:9,color:'var(--ink-3)'}}>{fmtAxis(t)}</span>
           </div>))}
         </div>
-        <div style={{flex:1,display:'flex',alignItems:'flex-end',gap:0,paddingLeft:30,position:'relative',zIndex:1}}>
+        <div style={{flex:1,display:'flex',alignItems:'flex-end',gap:0,paddingLeft:padL,position:'relative',zIndex:1}}>
           {data.map((d,i)=>(
             <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
               <div style={{display:'flex',alignItems:'flex-end',gap:4,height:plotH,width:'100%',justifyContent:'center'}}>
                 {series.map((s,j)=>(
                   <div key={j}
-                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.m||d.label}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
+                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${escHtml(d.m||d.label)}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${escHtml(ss.name)}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
                     onMouseLeave={hideTip}
-                    style={{ width:`min(34px, ${70/series.length}%)`, height:on?`${d[s.key]/max*plotH}px`:'0px',
+                    style={{ width:`min(34px, ${70/series.length}%)`, height:on?`${num(d[s.key])/max*plotH}px`:'0px',
                       background:cssVar(s.color),
                       borderRadius:'4px 4px 0 0', transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.05+j*.03}s`, cursor:'default' }}/>
                 ))}
@@ -399,7 +518,7 @@ function VBars({ data, series, height=240, unit="cr", yTicks=4 }){
           ))}
         </div>
       </div>
-      <div className="legend" style={{marginTop:12,paddingLeft:30}}>
+      <div className="legend" style={{marginTop:12,paddingLeft:padL}}>
         {series.map((s,i)=>(<div key={i} className="li"><span className="sw" style={{background:cssVar(s.color)}}></span>{s.name}</div>))}
       </div>
     </div>
@@ -408,11 +527,10 @@ function VBars({ data, series, height=240, unit="cr", yTicks=4 }){
 
 /* ================= STACKED BARS ================= */
 function StackedBars({ data, series, height=250, unit="cr" }){
-  const [on,setOn]=useState(false);
-  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
+  const on=useChartReveal();
   const fmt = unit==='cr'?fmtCr:fmtNum;
-  const totals = data.map(d=>series.reduce((a,s)=>a+d[s.key],0));
-  const max=Math.max(...totals)*1.1, padB=26, plotH=height-padB;
+  const totals = data.map(d=>series.reduce((a,s)=>a+num(d[s.key]),0));
+  const max=niceScale(totals).max, padB=26, plotH=height-padB;
   return (
     <div>
       <div style={{display:'flex',alignItems:'flex-end',gap:0,height}}>
@@ -424,9 +542,9 @@ function StackedBars({ data, series, height=250, unit="cr" }){
                 <div style={{display:'flex',flexDirection:'column-reverse',height:on?`${tot/max*plotH}px`:'0px',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.05}s`,borderRadius:'5px 5px 2px 2px',overflow:'hidden'}}>
                   {series.map((s,j)=>(
                     <div key={j}
-                      onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.m||d.label}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.15);padding-top:4px"><span class="tip-k">Total</span> <b style="margin-left:auto">${fmt(tot)}</b></div>`, e.clientX, e.clientY)}
+                      onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${escHtml(d.m||d.label)}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${escHtml(ss.name)}</span> <b style="margin-left:auto">${fmt(d[ss.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.15);padding-top:4px"><span class="tip-k">Total</span> <b style="margin-left:auto">${fmt(tot)}</b></div>`, e.clientX, e.clientY)}
                       onMouseLeave={hideTip}
-                      style={{height:`${d[s.key]/tot*100}%`,background:cssVar(s.color),cursor:'default'}}/>
+                      style={{height:`${tot?num(d[s.key])/tot*100:0}%`,background:cssVar(s.color),cursor:'default'}}/>
                   ))}
                 </div>
               </div>
@@ -445,24 +563,26 @@ function StackedBars({ data, series, height=250, unit="cr" }){
 /* ================= LINE / AREA CHART ================= */
 function LineChart({ data, series, height=240, unit="cr", yKey, xKey="m" }){
   const wrapRef=useRef(null); const [w,setW]=useState(560);
-  const [on,setOn]=useState(false);
-  useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); const t=setTimeout(()=>setOn(true),60); return ()=>{window.removeEventListener('resize',r);clearTimeout(t);}; },[]);
+  const on=useChartReveal();
+  useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); return ()=>window.removeEventListener('resize',r); },[]);
   const fmt = unit==='cr'?fmtCr:(unit==='psf'?(v=>'₹'+v+'/sf'):fmtNum);
-  const padL=34,padR=12,padT=12,padB=26;
-  const allVals=data.flatMap(d=>series.map(s=>d[s.key]));
-  const max=Math.max(...allVals)*1.12, min=Math.min(0,...allVals);
+  if(!data.length) return <div style={{height,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--ink-3)'}}>No data available.</div>;
+  const allVals=data.flatMap(d=>series.map(s=>num(d[s.key])));
+  const scale=niceScale(allVals,{includeZero:false,tickCount:4,padRatio:.12});
+  const {min,max}=scale;
+  const tickLabels=scale.ticks.map(fmtAxis);
+  const padL=Math.max(38,Math.max(...tickLabels.map(x=>x.length))*6+10),padR=12,padT=12,padB=26;
   const plotW=w-padL-padR, plotH=height-padT-padB;
   const X=i=>padL + (data.length<=1?plotW/2:i/(data.length-1)*plotW);
   const Y=v=>padT + plotH - (v-min)/(max-min)*plotH;
-  const ticks=4;
   return (
     <div ref={wrapRef} style={{position:'relative'}}>
       <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} style={{display:'block',overflow:'visible'}}>
-        {Array.from({length:ticks+1}).map((_,i)=>{ const v=min+(max-min)*i/ticks; const y=Y(v);
-          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={4} y={y+3} fontSize="9" fill="var(--ink-3)" fontFamily="var(--mono)">{Math.round(v)}</text></g>; })}
+        {scale.ticks.map((v,i)=>{ const y=Y(v);
+          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={padL-7} y={y+3} fontSize="9" fill="var(--ink-3)" fontFamily="var(--mono)" textAnchor="end">{fmtAxis(v)}</text></g>; })}
         {data.map((d,i)=><text key={i} x={X(i)} y={height-8} fontSize="9.5" fill="var(--ink-3)" textAnchor="middle" fontFamily="var(--mono)">{d[xKey]}</text>)}
         {series.map((s,si)=>{
-          const pts=data.map((d,i)=>[X(i),Y(d[s.key])]);
+          const pts=data.map((d,i)=>[X(i),Y(num(d[s.key]))]);
           const line=pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
           const area=`${line} L ${pts[pts.length-1][0]} ${Y(min)} L ${pts[0][0]} ${Y(min)} Z`;
           const col=cssVar(s.color);
@@ -474,7 +594,7 @@ function LineChart({ data, series, height=240, unit="cr", yKey, xKey="m" }){
               {pts.map((p,i)=>(
                 <g key={i}>
                   <circle cx={p[0]} cy={p[1]} r="9" fill="transparent"
-                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${data[i][xKey]}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${ss.name}</span> <b style="margin-left:auto">${fmt(data[i][ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
+                    onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${escHtml(data[i][xKey])}</span></div>`+series.map(ss=>`<div class="tip-row"><span class="tdot" style="background:${cssVar(ss.color)}"></span><span>${escHtml(ss.name)}</span> <b style="margin-left:auto">${fmt(data[i][ss.key])}</b></div>`).join(''), e.clientX, e.clientY)}
                     onMouseLeave={hideTip} style={{cursor:'default'}}/>
                   <circle cx={p[0]} cy={p[1]} r="3.6" fill="var(--surface)" stroke={col} strokeWidth="2.2" style={{opacity:on?1:0,transition:`opacity .4s ease ${.6+i*.05}s`,pointerEvents:'none'}}/>
                 </g>
@@ -492,17 +612,17 @@ function LineChart({ data, series, height=240, unit="cr", yKey, xKey="m" }){
 
 /* ================= DISTRIBUTION BARS (rent spread) ================= */
 function DistBars({ data, colors=['var(--d4)','var(--d3)','var(--brand-maroon)','var(--brand-orange)'], unit="M sft", height=210 }){
-  const [on,setOn]=useState(false);
-  useEffect(()=>{ const t=setTimeout(()=>setOn(true),50); return ()=>clearTimeout(t); },[]);
-  const max=Math.max(...data.map(d=>d.area))*1.12;
+  const on=useChartReveal();
+  const max=niceScale(data.map(d=>d.area)).max;
+  const plotH=Math.max(80,height-62);
   return (
     <div style={{display:'flex',alignItems:'flex-end',gap:14,height,paddingTop:8}}>
       {data.map((d,i)=>(
         <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:8,height:'100%',justifyContent:'flex-end'}}
-          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(colors[i%colors.length])}"></span><span class="tip-k">${d.band}</span></div><b>${d.area} ${unit}</b>`, e.clientX, e.clientY)}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${cssVar(colors[i%colors.length])}"></span><span class="tip-k">${escHtml(d.band)}</span></div><b>${d.area} ${escHtml(unit)}</b>`, e.clientX, e.clientY)}
           onMouseLeave={hideTip}>
           <span className="tnum" style={{fontSize:13,fontWeight:700}}>{d.area}</span>
-          <div style={{width:'100%',maxWidth:60,height:on?`${d.area/max*100}%`:'0%',
+          <div style={{width:'100%',maxWidth:60,height:on?`${num(d.area)/max*plotH}px`:'0px',minHeight:on&&num(d.area)>0?2:0,
             background:cssVar(colors[i%colors.length]),
             borderRadius:'4px 4px 0 0',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.07}s`,cursor:'default'}}/>
           <span className="mono" style={{fontSize:9.5,color:'var(--ink-3)',textAlign:'center',lineHeight:1.2}}>{d.band}</span>
@@ -525,11 +645,29 @@ const { useState:uS, useMemo:uM, useRef:uR, useEffect:uE } = React;
 
 const assetColorOf = id => (window.DASH.assetColors||{})[id]||'var(--ink-3)';
 
+/* ---------- data access (window.DASH is built by build_dashboard.py) ---------- */
+const FUND = window.DASH.fundId || 'FUND';
+const seriesOf = id => (window.DASH.monthly||{})[id] || [];
+const monthRow = (id, key) => seriesOf(id).find(r=>r.key===key) || null;
+const assetName = id => id===FUND ? 'All assets (Fund)' : ((window.DASH.assets.find(a=>a.id===id)||{}).name || id);
+const monthLabelOf = key => (window.DASH.meta.months.find(m=>m.key===key)||{}).label || key;
+/* Months of the same June–May reporting year, up to and including `key`. */
+const periodToDate = (id, key) => { const cur=monthRow(id,key); return cur ? seriesOf(id).filter(r=>r.period===cur.period && r.key<=key) : []; };
+const sumKey = (rows, k) => { const v=rows.map(r=>r[k]).filter(x=>!isBlank(x)); return v.length ? v.reduce((a,b)=>a+Number(b),0) : null; };
+const hasAny = (rows, k) => rows.some(r=>!isBlank(r[k]));
+/* Billing covers rent + CAM only, so efficiency compares the matching collections (not "Other Collections"). */
+const collectionEfficiency = r => (r && r.grossBilling && (!isBlank(r.rentalCollections)||!isBlank(r.camCollections)))
+  ? (num(r.rentalCollections)+num(r.camCollections))/r.grossBilling*100 : null;
+const dash = v => (v===null||v===undefined||v==='') ? '—' : v;
+
 /* ---------- Top bar: wordmark + controls ---------- */
-function TopBar({ assets, asset, onAsset, theme, onTheme, month, nav, active, onNav }){
-  const [openA,setOpenA]=uS(false);
-  const aObj = assets.find(a=>a.id===asset);
-  uE(()=>{ const h=()=>setOpenA(false); window.addEventListener('click',h); return ()=>window.removeEventListener('click',h); },[]);
+function TopBar({ asset, onAsset, month, onMonth, theme, onTheme, nav, active, onNav }){
+  const D = window.DASH;
+  const occupancyTag = id => { const r=monthRow(id,D.meta.reportMonth); return r&&!isBlank(r.occupancy) ? fmtFixed(r.occupancy,0,'%') : null; };
+  const assetItems = [{id:FUND,name:'All assets (Fund)'}, ...D.assets.map(a=>({id:a.id,name:a.name}))]
+    .map(i=>({...i, dot:assetColorOf(i.id), meta:occupancyTag(i.id)}));
+  const monthItems = D.meta.months.slice().reverse()
+    .map(m=>({id:m.key, name:m.label, meta:m.key===D.meta.reportMonth?'latest':m.period}));
   return (
     <header className="masthead">
       <div className="masthead-brand">
@@ -537,35 +675,53 @@ function TopBar({ assets, asset, onAsset, theme, onTheme, month, nav, active, on
       </div>
       <div className="masthead-bars">
         <div className="appbar-row">
-          <span className="wm-sub">Real Estate Fund</span>
+          <span className="wm-sub">{D.meta.fund}</span>
           <div className="appbar-spacer"></div>
           <div className="ctrl-row">
-        <div className="pill-select" onClick={e=>e.stopPropagation()}>
-          <div className="pill" onClick={()=>setOpenA(v=>!v)}>
-            <span className="dot" style={{background: assetColorOf(asset)}}></span>
-            {aObj?.name}
-            <span style={{fontSize:9,color:'var(--ink-3)',marginLeft:2}}>▾</span>
-          </div>
-          {openA && (
-            <div className="dropdown">
-              {assets.map(a=>(
-                <div key={a.id} className="dd-item" onClick={()=>{onAsset(a.id);setOpenA(false);}}>
-                  <span className="dot" style={{background:assetColorOf(a.id)}}></span>{a.name}
-                  <span className="tnum" style={{marginLeft:'auto',fontSize:11,color:'var(--ink-3)'}}>{a.occupancy}%</span>
-                </div>
-              ))}
+            <PillSelect label="Asset" items={assetItems} value={asset} onChange={onAsset}/>
+            <PillSelect label="Month" items={monthItems} value={month} onChange={onMonth}/>
+            <div className="seg">
+              <button className={theme==='light'?'on':''} onClick={()=>onTheme('light')}>Light</button>
+              <button className={theme==='dark'?'on':''} onClick={()=>onTheme('dark')}>Dark</button>
             </div>
-          )}
-        </div>
-        <div className="seg">
-          <button className={theme==='light'?'on':''} onClick={()=>onTheme('light')}>Light</button>
-          <button className={theme==='dark'?'on':''} onClick={()=>onTheme('dark')}>Dark</button>
           </div>
-        </div>
         </div>
         <TabNav nav={nav} active={active} onNav={onNav}/>
       </div>
     </header>
+  );
+}
+
+/* ---------- Dropdown pill (asset + month pickers) ---------- */
+function PillSelect({ items, value, onChange, label }){
+  const [open,setOpen]=uS(false);
+  const ref=uR(null);
+  uE(()=>{
+    const close=e=>{ if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    window.addEventListener('click',close);
+    return ()=>window.removeEventListener('click',close);
+  },[]);
+  const cur = items.find(i=>i.id===value) || items[0] || {};
+  return (
+    <div className="pill-select" ref={ref}>
+      <button type="button" className="pill" aria-label={label} aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
+        {cur.dot && <span className="dot" style={{background:cur.dot}}></span>}
+        <span className="pill-text">{cur.name}</span>
+        <span style={{fontSize:9,color:'var(--ink-3)',marginLeft:2}}>▾</span>
+      </button>
+      {open && (
+        <div className="dropdown" role="listbox" aria-label={label}>
+          {items.map(i=>(
+            <div key={i.id} role="option" aria-selected={i.id===value} className="dd-item" onClick={()=>{onChange(i.id);setOpen(false);}}>
+              {i.dot && <span className="dot" style={{background:i.dot}}></span>}
+              {i.name}
+              {i.meta && <span className="tnum" style={{marginLeft:'auto',fontSize:11,color:'var(--ink-3)',paddingLeft:12}}>{i.meta}</span>}
+              {i.id===value && <span className="chk" style={i.meta?{marginLeft:8}:null}>✓</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -581,23 +737,24 @@ function TabNav({ nav, active, onNav }){
 }
 
 /* ---------- Page header ---------- */
-function PageHead({ kicker, title }){
+function PageHead({ kicker, title, context }){
   return (
     <div className="page-head">
       <div>
         <div className="page-kicker">{kicker}</div>
         <h1 className="page-title">{title}</h1>
       </div>
+      {context && <div className="page-meta">{context}</div>}
     </div>
   );
 }
 
 /* ---------- KPI ---------- */
-function Kpi({ label, value, unit, foot, trend, trendDir }){
+function Kpi({ label, value, unit, foot, trend, trendDir, text }){
   return (
     <div className="kpi">
       <div className="kpi-label">{label}</div>
-      <div className="kpi-value tnum">{value}{unit && <span className="unit">{unit}</span>}</div>
+      <div className={"kpi-value tnum"+(text?" kpi-text":"")}>{value}{unit && <span className="unit">{unit}</span>}</div>
       {(foot||trend) && <div className="kpi-foot">
         {trend && <span className={"trend "+(trendDir||'up')}>{trendDir==='down'?'▾':'▴'} {trend}</span>}
         {foot && <span>{foot}</span>}
@@ -619,14 +776,20 @@ function Panel({ title, sub, right, children, pad=true, style }){
   );
 }
 
+function Empty({ children, height=160 }){
+  return <div className="empty" style={{minHeight:height}}>{children}</div>;
+}
+
 /* ---------- Badge ---------- */
 const STATUS_MAP = {
   "Complied":"ok","OK":"ok","Low":"ok",
-  "Due Soon":"warn","In Progress":"info","Medium":"warn",
-  "Revision Required":"danger","High":"danger",
-  "Not Due":"muted","Not Applicable":"muted","NA":"muted",
+  "Due Soon":"warn","In Progress":"info","Ongoing":"info","Medium":"warn",
+  "Revision Required":"danger","High":"danger","ACTION REQUIRED":"danger","Expired":"danger",
+  "Needs area (sft)":"warn",
+  "Not Due":"muted","Not Applicable":"muted","Unclassified":"muted","NA":"muted",
 };
 function Badge({ children, kind }){
+  if(children===null||children===undefined||children==='') return <span className="muted">—</span>;
   const k = kind || STATUS_MAP[children] || "muted";
   return <span className={"badge "+k}><span className="bdot" style={{background:'currentColor'}}></span>{children}</span>;
 }
@@ -640,8 +803,8 @@ function DataTable({ columns, rows, totalRow, searchable=true, initialSort }){
     if(q.trim()){ const s=q.toLowerCase(); r=r.filter(row=>columns.some(c=>String(row[c.key]??'').toLowerCase().includes(s))); }
     if(sort.key){ const c=columns.find(c=>c.key===sort.key);
       r=[...r].sort((a,b)=>{ let av=a[sort.key],bv=b[sort.key];
-        if(c&&c.num){ av=parseFloat(av)||0; bv=parseFloat(bv)||0; return (av-bv)*sort.dir; }
-        return String(av).localeCompare(String(bv))*sort.dir; }); }
+        if(c&&c.num){ av=isBlank(av)?-Infinity:Number(av); bv=isBlank(bv)?-Infinity:Number(bv); return (av===bv?0:av>bv?1:-1)*sort.dir; }
+        return String(av??'').localeCompare(String(bv??''))*sort.dir; }); }
     return r;
   },[q,sort,rows,columns]);
   const toggle=k=>setSort(s=>s.key===k?{key:k,dir:-s.dir}:{key:k,dir:1});
@@ -662,10 +825,11 @@ function DataTable({ columns, rows, totalRow, searchable=true, initialSort }){
             ))}
           </tr></thead>
           <tbody>
+            {filtered.length===0 && <tr><td colSpan={columns.length} style={{padding:'32px 16px',textAlign:'center',color:'var(--ink-3)'}}>No matching rows.</td></tr>}
             {filtered.map((row,i)=>(
               <tr key={i}>
                 {columns.map(c=>(
-                  <td key={c.key} className={c.num?'num':''}>{c.render?c.render(row[c.key],row):row[c.key]}</td>
+                  <td key={c.key} className={c.num?'num':''}>{c.render?c.render(row[c.key],row):dash(row[c.key])}</td>
                 ))}
               </tr>
             ))}
@@ -679,91 +843,18 @@ function DataTable({ columns, rows, totalRow, searchable=true, initialSort }){
   );
 }
 
-Object.assign(window, { TopBar, TabNav, PageHead, Kpi, Panel, Badge, DataTable, assetColorOf });
+const AssetChip = ({ id }) => <span className="achip"><span className="dot" style={{background:assetColorOf(id)}}></span>{assetName(id)}</span>;
+const assetColumn = {key:'assetId',label:'Asset',render:v=><AssetChip id={v}/>};
+
+Object.assign(window, { TopBar, PillSelect, TabNav, PageHead, Kpi, Panel, Empty, Badge, DataTable, AssetChip, assetColumn,
+  assetColorOf, FUND, seriesOf, monthRow, assetName, monthLabelOf, periodToDate, sumKey, hasAny, collectionEfficiency, dash });
 
 </script>
 
 <script type="text/babel">
 /* =====================================================================
-   SECTIONS — Portfolio (Investment Summary) + Executive Summary
+   SECTIONS — Portfolio + Asset Overview
    ===================================================================== */
-const assetColor = id => (window.DASH.assetColors||{})[id]||'var(--ink-3)';
-
-/* ============================ INVESTMENT / PORTFOLIO ============================ */
-function InvestmentSection({ asset }){
-  const D = window.DASH, P = D.portfolio;
-  // Portfolio Overview is always the full-portfolio rollup, regardless of the
-  // asset dropdown (which drives the per-asset detail tabs).
-  const filtered = D.assets;
-  const head = {
-    rent:P.monthlyRent, occ:P.occupancy, gross:P.grossBilling, coll:P.collections,
-    leasable:P.area.leasable, leased:P.area.leased, vacant:P.area.vacant
-  };
-
-  const tableRows = filtered.map(a=>({
-    name:a.name, id:a.id, leasable:a.leasable, leased:a.leased, vacant:a.vacant, occupancy:a.occupancy, monthlyRent:a.monthlyRent
-  }));
-  const totals = filtered.reduce((t,a)=>({leasable:t.leasable+a.leasable,leased:t.leased+a.leased,vacant:t.vacant+a.vacant,monthlyRent:t.monthlyRent+a.monthlyRent}),{leasable:0,leased:0,vacant:0,monthlyRent:0});
-  const totOcc = (totals.leased/totals.leasable*100);
-
-  return (
-    <div className="fade-in">
-      {/* KPI strip */}
-      <div className="grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-        <Kpi label="Monthly Rent" value={fmtCr(head.rent)} accent="var(--brand-maroon)" icon="invest" foot="across portfolio"/>
-        <Kpi label="Occupancy" value={head.occ} unit="%" accent="var(--brand-orange)" icon="grid" foot="leased of leasable"/>
-        <Kpi label="CAM Charge" value={`₹${P.camCharge}`} unit="/sf" accent="var(--d3)" foot="weighted average"/>
-        <Kpi label="Gross Billing" value={fmtCr(head.gross)} accent="var(--d4)" foot="incl. taxes"/>
-        <Kpi label="Collections" value={fmtCr(head.coll)} accent="var(--d5)" foot="collection efficiency"/>
-      </div>
-
-      {/* main grid */}
-      <div className="grid" style={{gridTemplateColumns:'1.55fr 1fr',marginTop:18,alignItems:'start'}}>
-        <Panel title="Assets Summary" sub={`${D.meta.reportMonth} · ${filtered.length} ${filtered.length>1?'assets':'asset'}`} pad={false}>
-          <div style={{padding:'0 4px 4px'}}>
-          <DataTable
-            searchable={false}
-            initialSort={{key:'monthlyRent',dir:-1}}
-            columns={[
-              {key:'name',label:'Asset',render:(v,r)=><span className="achip"><span className="dot" style={{background:assetColor(r.id)}}></span>{v}</span>},
-              {key:'leasable',label:'Leasable',num:true,render:v=>v.toFixed(2)+'M'},
-              {key:'leased',label:'Leased',num:true,render:v=>v.toFixed(2)+'M'},
-              {key:'vacant',label:'Vacant',num:true,render:v=>v.toFixed(2)+'M'},
-              {key:'occupancy',label:'Occ. %',num:true,render:v=><b style={{color:v>90?'var(--ok)':v>80?'var(--warn)':'var(--danger)'}}>{v}%</b>},
-              {key:'monthlyRent',label:'Monthly Rent',num:true,render:v=>fmtCr(v)},
-            ]}
-            rows={tableRows}
-            totalRow={{name:'Total',leasable:totals.leasable.toFixed(2)+'M',leased:totals.leased.toFixed(2)+'M',vacant:totals.vacant.toFixed(2)+'M',occupancy:totOcc.toFixed(1)+'%',monthlyRent:fmtCr(totals.monthlyRent)}}
-          />
-          </div>
-        </Panel>
-
-        <Panel title="Portfolio Occupancy" sub="leased vs leasable">
-          <div style={{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',justifyContent:'center'}}>
-            <Donut value={head.occ} label="Occupied" color="var(--brand-orange)" size={146}/>
-            <div style={{flex:1,minWidth:150,display:'flex',flexDirection:'column',gap:14}}>
-              <AreaStat label="Leasable Area" value={`${head.leasable}M`} unit="sft" color="var(--ink-3)"/>
-              <AreaStat label="Leased Area" value={`${head.leased}M`} unit="sft" color="var(--brand-maroon)"/>
-              <AreaStat label="Vacant Area" value={`${head.vacant}M`} unit="sft" color="var(--vacant)"/>
-            </div>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid" style={{gridTemplateColumns:'1fr 1fr 1fr',marginTop:18,alignItems:'start'}}>
-        <Panel title="Rent Spread" sub="leased area by rate band">
-          <DistBars data={P.rentSpread}/>
-        </Panel>
-        <Panel title="Revenue Composition" sub={`excl. taxes · ₹${Math.round(P.revenueComposition.reduce((a,d)=>a+(d.value||0),0))}Cr total`}>
-          <RevComposition data={P.revenueComposition}/>
-        </Panel>
-        <Panel title="Monthly Rent by Asset" sub="₹Cr contribution">
-          <HBars data={D.assets.map(a=>({name:a.name,value:a.monthlyRent,color:assetColor(a.id)}))} />
-        </Panel>
-      </div>
-    </div>
-  );
-}
 
 function AreaStat({ label, value, unit, color }){
   return (
@@ -777,28 +868,45 @@ function AreaStat({ label, value, unit, color }){
   );
 }
 
+function OccupancyPanel({ row, sub }){
+  return (
+    <Panel title="Occupancy" sub={sub}>
+      <div style={{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',justifyContent:'center'}}>
+        <Donut value={row.occupancy} center={fmtFixed(row.occupancy,1,'%')} label="Leased" color="var(--brand-orange)" size={146}/>
+        <div style={{flex:1,minWidth:150,display:'flex',flexDirection:'column',gap:14}}>
+          <AreaStat label="Leasable Area" value={fmtSft(row.leasable)} unit="sft" color="var(--ink-3)"/>
+          <AreaStat label="Leased Area" value={fmtSft(row.leased)} unit="sft" color="var(--brand-maroon)"/>
+          <AreaStat label="Vacant Area" value={fmtSft(row.vacant)} unit="sft" color="var(--vacant)"/>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function RevComposition({ data }){
-  const total = data.reduce((a,d)=>a+d.value,0);
-  const colors=['var(--brand-maroon)','var(--brand-orange)','var(--d3)','var(--d5)'];
-  const [on,setOn]=React.useState(false);
-  React.useEffect(()=>{const t=setTimeout(()=>setOn(true),50);return ()=>clearTimeout(t);},[]);
+  const total = data.reduce((a,d)=>a+num(d.value),0);
+  const colors=['var(--brand-maroon)','var(--brand-orange)','var(--d3)','var(--d5)','var(--d4)','var(--d6)'];
+  const color = i => colors[i%colors.length];
+  const share = v => total ? Math.round(num(v)/total*100) : 0;
+  const on=useChartReveal();
+  if(!total) return <Empty>No revenue recorded for this month.</Empty>;
   return (
     <div>
       <div style={{display:'flex',height:18,borderRadius:6,overflow:'hidden',marginBottom:16}}>
         {data.map((d,i)=>(
           <div key={i}
-            onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${colors[i]}"></span><span class="tip-k">${d.label}</span></div><b>${fmtCr(d.value)} · ${Math.round(d.value/total*100)}%</b>`,e.clientX,e.clientY)}
+            onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${color(i)}"></span><span class="tip-k">${escHtml(d.label)}</span></div><b>${fmtCr(d.value)} · ${share(d.value)}%</b>`,e.clientX,e.clientY)}
             onMouseLeave={hideTip}
-            style={{width:on?`${d.value/total*100}%`:'0%',background:colors[i],transition:`width .32s cubic-bezier(.2,.8,.2,1) ${i*.08}s`,cursor:'default'}}/>
+            style={{width:on?`${num(d.value)/total*100}%`:'0%',background:color(i),transition:`width .32s cubic-bezier(.2,.8,.2,1) ${i*.08}s`,cursor:'default'}}/>
         ))}
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:11}}>
         {data.map((d,i)=>(
           <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
-            <span style={{width:10,height:10,borderRadius:3,background:colors[i]}}></span>
+            <span style={{width:10,height:10,borderRadius:3,background:color(i)}}></span>
             <span style={{fontSize:12.5,fontWeight:600,flex:1}}>{d.label}</span>
             <span className="mono tnum" style={{fontSize:11.5,color:'var(--ink-2)'}}>{fmtCr(d.value)}</span>
-            <span className="mono tnum" style={{fontSize:11,color:'var(--ink-3)',width:38,textAlign:'right'}}>{Math.round(d.value/total*100)}%</span>
+            <span className="mono tnum" style={{fontSize:11,color:'var(--ink-3)',width:38,textAlign:'right'}}>{share(d.value)}%</span>
           </div>
         ))}
       </div>
@@ -806,74 +914,242 @@ function RevComposition({ data }){
   );
 }
 
-/* ============================ EXECUTIVE SUMMARY ============================ */
-function ExecutiveSection({ asset }){
+/* ============================ PORTFOLIO ============================ */
+function PortfolioSection({ month }){
   const D = window.DASH;
-  const aId = asset;
-  const aMeta = D.assets.find(a=>a.id===aId) || D.assets[0];
-  const E = D.executive[aId] || {topTenants:[],rentalPsfTrend:[],billedVsActual:[]};
-  const bva = E.billedVsActual || [];
-  const billedAvg = bva.length ? bva.reduce((a,b)=>a+(b.billed||0),0)/bva.length : null;
-  const lastActual = bva.length ? bva[bva.length-1].actual : null;
-  const collEff = (E.grossBilling) ? Math.round(E.collection/E.grossBilling*100) : null;
-  const leasedPct = (E.totalArea) ? Math.round(E.leasedArea/E.totalArea*100) : 0;
-  const dash = '—';
+  const F = monthRow(FUND, month) || {};
+  const label = monthLabelOf(month);
+  const fundTenants = D.tenants[FUND] || {};
+  const collEff = collectionEfficiency(F);
+
+  const rows = D.assets.map(a=>{
+    const r = monthRow(a.id, month) || {};
+    return { id:a.id, name:a.name, leasable:r.leasable, leased:r.leased, occupancy:r.occupancy, psf:r.psf,
+             monthlyRent:r.monthlyRent, collections:r.collections, wale:(D.tenants[a.id]||{}).wale };
+  });
+
+  const mix = D.revenueMix.filter(r=>r.key===month);
+  const revenue = mix.length
+    ? Object.values(mix.reduce((acc,r)=>{ (acc[r.line]=acc[r.line]||{label:r.line,value:0}).value+=num(r.value); return acc; },{}))
+    : [{label:'Rental Collections',value:F.rentalCollections},{label:'CAM Collections',value:F.camCollections},{label:'Other Collections',value:F.otherCollections}];
+
+  const spread = (D.rentSpread.fund||[]).map(b=>({band:b.band, area:Math.round(num(b.sft)/100)/10}));
+  const trend = seriesOf(FUND);
+  const annual = D.annual[FUND] || [];
 
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'1.1fr 1fr 1fr 1fr'}}>
-        <Panel title="Project Overview" sub={E.address}>
-          <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div>
-              <div className="tnum" style={{fontSize:26,fontWeight:700,letterSpacing:'-.03em',lineHeight:1}}>{E.leasableSft!=null?E.leasableSft.toLocaleString('en-IN'):dash}</div>
-              <div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:5}}>sft leasable area</div>
-            </div>
-            <div style={{display:'flex',gap:18}}>
-              <div><div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>WALE</div><div style={{fontSize:18,fontWeight:700}} className="tnum">{E.wale!=null?E.wale:dash} <span style={{fontSize:11,color:'var(--ink-2)'}}>yrs</span></div></div>
-              <div><div className="mono" style={{fontSize:9.5,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>Asset</div><div style={{marginTop:3}}><span className="achip"><span className="dot" style={{background:assetColor(aId)}}></span>{aMeta.name}</span></div></div>
-            </div>
+      <div className="grid" style={{gridTemplateColumns:'repeat(6,minmax(0,1fr))'}}>
+        <Kpi label="Monthly Rent" value={fmtCr(F.monthlyRent)} foot={`rent billed · ${label}`}/>
+        <Kpi label="Monthly CAM" value={fmtCr(F.monthlyCam)} foot={`CAM billed · ${label}`}/>
+        <Kpi label="Gross Billing" value={fmtCr(F.grossBilling)} foot="rent + CAM"/>
+        <Kpi label="Collections" value={fmtCr(F.collections)} foot={collEff!=null?`rent + CAM collected: ${collEff.toFixed(0)}% of billing`:'collections inflow'}/>
+        <Kpi label="Occupancy" value={fmtFixed(F.occupancy,1)} unit="%" foot={`${fmtSft(F.leased)} of ${fmtSft(F.leasable)} sft`}/>
+        <Kpi label="WALE" value={fmtFixed(fundTenants.wale,2)} unit="yrs" foot={`area-weighted · as of ${D.meta.asOf}`}/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Assets Summary" sub={`${label} · ${rows.length} assets`} pad={false}>
+          <div style={{padding:'0 4px 4px'}}>
+            <DataTable
+              searchable={false}
+              initialSort={{key:'monthlyRent',dir:-1}}
+              columns={[
+                {key:'name',label:'Asset',render:(v,r)=><AssetChip id={r.id}/>},
+                {key:'leasable',label:'Leasable sft',num:true,render:fmtSft},
+                {key:'leased',label:'Leased sft',num:true,render:fmtSft},
+                {key:'occupancy',label:'Occ. %',num:true,render:v=>isBlank(v)?'—':<b style={{color:v>=90?'var(--ok)':v>=80?'var(--warn)':'var(--danger)'}}>{fmtFixed(v,1,'%')}</b>},
+                {key:'psf',label:'Rent ₹/sf',num:true,render:v=>fmtFixed(v,1)},
+                {key:'monthlyRent',label:'Monthly Rent',num:true,render:fmtCr},
+                {key:'collections',label:'Collections',num:true,render:fmtCr},
+                {key:'wale',label:'WALE yrs',num:true,render:v=>fmtFixed(v,2)},
+              ]}
+              rows={rows}
+              totalRow={{name:'Fund',leasable:fmtSft(F.leasable),leased:fmtSft(F.leased),occupancy:fmtFixed(F.occupancy,1,'%'),psf:fmtFixed(F.psf,1),monthlyRent:fmtCr(F.monthlyRent),collections:fmtCr(F.collections),wale:fmtFixed(fundTenants.wale,2)}}
+            />
           </div>
+          {F.psfExcluded && F.psfExcluded.length>0 && <div className="note" style={{margin:'0 20px 20px'}}>
+            Fund rent ₹/sf excludes {F.psfExcluded.map(assetName).join(', ')}: its PSF is blank in 2_MONTHLY_INPUT for {label}.
+          </div>}
         </Panel>
-        <Kpi label="Rent to be Billed" value={billedAvg!=null?fmtCr(billedAvg):dash} accent="var(--brand-maroon)" foot="monthly avg · w/o tax"/>
-        <Kpi label="Actual Billed" value={lastActual!=null?fmtCr(lastActual):dash} accent="var(--brand-orange)" foot="latest month"/>
-        <Kpi label="Collection Efficiency" value={collEff!=null?collEff:dash} unit={collEff!=null?'%':''} accent="var(--ok)" foot={`${fmtCr(E.collection)} of ${fmtCr(E.grossBilling)}`}/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr 1fr 1fr',marginTop:18,alignItems:'start'}}>
+        <OccupancyPanel row={F} sub={`leased vs leasable · ${label}`}/>
+        <Panel title="Rent Spread" sub={`K sft leased by rent band${D.rentSpread.asOf?` · as of ${D.rentSpread.asOf}`:''}`}>
+          {spread.length ? <DistBars data={spread} unit="K sft"/> : <Empty>No rent bands in 3_REVENUE_RENT.</Empty>}
+        </Panel>
+        <Panel title="Revenue Composition" sub={mix.length?`revenue lines · ${label}`:`collections by type · ${label}`}>
+          <RevComposition data={revenue}/>
+          {!mix.length && <div className="muted" style={{fontSize:11.5,marginTop:14,lineHeight:1.5}}>3A_REVENUE_MIX has no rows yet, so this splits the month's collections inflow.</div>}
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr 1.4fr',marginTop:18,alignItems:'start'}}>
+        <Panel title="Monthly Rent by Asset" sub={`₹Cr · ${label}`}>
+          <HBars data={rows.map(r=>({name:r.name,value:r.monthlyRent,color:assetColorOf(r.id)}))}/>
+        </Panel>
+        <Panel title="Gross Billing vs Collections" sub={`₹Cr · fund · ${trend.length} reported month${trend.length===1?'':'s'}`}>
+          <VBars data={trend} series={[{key:'grossBilling',name:'Gross Billing',color:'var(--d3)'},{key:'collections',name:'Collections',color:'var(--brand-orange)'}]}/>
+        </Panel>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Rent Spread by Asset" sub="K sft per band">
+          {Object.keys(D.rentSpread.byAsset||{}).length
+            ? <DataTable searchable={false}
+                columns={[{key:'id',label:'Asset',render:v=><AssetChip id={v}/>}, ...(D.rentSpread.fund||[]).map((b,i)=>({key:'b'+i,label:b.band,num:true,render:fmtKsft}))]}
+                rows={Object.entries(D.rentSpread.byAsset).map(([id,bands])=>Object.assign({id},...bands.map((b,i)=>({['b'+i]:b.sft}))))}/>
+            : <Empty>No by-asset rent spread in 3_REVENUE_RENT.</Empty>}
+        </Panel>
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Annual Summary · June to May</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <AnnualTable rows={annual}/>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function AnnualTable({ rows }){
+  return (
+    <DataTable
+      searchable={false}
+      columns={[
+        {key:'period',label:'Period',render:v=><b>{v}</b>},
+        {key:'monthsReported',label:'Months',num:true,render:(v,r)=>`${v} (${r.from}–${r.to})`},
+        {key:'grossBilling',label:'Gross Billing',num:true,render:fmtCr},
+        {key:'collections',label:'Collections',num:true,render:fmtCr},
+        {key:'totalExpense',label:'Total Expense',num:true,render:fmtCr},
+        {key:'netSurplus',label:'Net Surplus',num:true,render:fmtCr},
+        {key:'capex',label:'Capex',num:true,render:fmtCr},
+        {key:'openingBalance',label:'Opening',num:true,render:fmtCr},
+        {key:'closingBalance',label:'Closing (latest)',num:true,render:v=><b>{fmtCr(v)}</b>},
+      ]}
+      rows={rows}
+    />
+  );
+}
+
+/* ============================ ASSET OVERVIEW ============================ */
+function Stat({ k, v, wide }){
+  return <div className="stat" style={wide?{gridColumn:'1 / -1'}:null}><div className="k">{k}</div><div className="v">{dash(v)}</div></div>;
+}
+
+function AssetProfile({ asset, row, wale }){
+  const [imageOk,setImageOk]=React.useState(true);
+  return (
+    <div className="grid" style={{gridTemplateColumns:'1fr 1.25fr 1fr',alignItems:'stretch'}}>
+      <Panel title={asset.name} sub={asset.city}>
+        <div className="stat-grid">
+          <Stat k="Address" v={asset.address} wide/>
+          <Stat k="Leasable Area" v={`${fmtSft(isBlank(row.leasable)?asset.leasable:row.leasable)} sft`}/>
+          <Stat k="WALE" v={isBlank(wale)?null:`${fmtFixed(wale,2)} yrs`}/>
+          <Stat k="Capex till date" v={fmtCr(asset.capexTillDate)}/>
+          <Stat k="Coordinates" v={isBlank(asset.latitude)?null:`${fmtFixed(asset.latitude,4)}, ${fmtFixed(asset.longitude,4)}`}/>
+          {asset.notes && <Stat k="Notes" v={asset.notes} wide/>}
+        </div>
+      </Panel>
+      <Panel title="Location" sub="Google Maps"
+        right={asset.mapLinkUrl && <a className="link" href={asset.mapLinkUrl} target="_blank" rel="noopener noreferrer">Open in Maps ↗</a>}>
+        {asset.mapEmbedUrl
+          ? <iframe className="map-frame" title={`Map of ${asset.name}`} src={asset.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+          : <div className="img-placeholder">No map link or coordinates in 1_ASSET_MASTER.</div>}
+      </Panel>
+      <Panel title="Asset Image" sub={asset.imageAlt}>
+        {asset.imageUrl && imageOk
+          ? <img className="asset-img" src={asset.imageUrl} alt={asset.imageAlt||asset.name} onError={()=>setImageOk(false)}/>
+          : <div className="img-placeholder">
+              <b style={{color:'var(--ink-2)'}}>{asset.imageUrl?'Image could not be loaded':'No image link yet'}</b>
+              <span>Add “Asset Image URL / File Link” in 1_ASSET_MASTER.</span>
+            </div>}
+      </Panel>
+    </div>
+  );
+}
+
+function FundAssetCards({ month }){
+  const D = window.DASH;
+  return (
+    <Panel title={D.meta.fund} sub={`${D.assets.length} assets · ${monthLabelOf(month)}`}>
+      <div className="asset-cards">
+        {D.assets.map(a=>{ const r=monthRow(a.id,month)||{}; return (
+          <div key={a.id} className="asset-card">
+            <AssetChip id={a.id}/>
+            <div className="muted" style={{fontSize:12,marginTop:5}}>{dash(a.address)}</div>
+            <div className="tnum" style={{fontSize:12.5,marginTop:10,color:'var(--ink-2)',lineHeight:1.6}}>
+              {fmtSft(r.leasable)} sft · {fmtFixed(r.occupancy,1,'%')} leased<br/>{fmtCr(r.monthlyRent)} rent · WALE {fmtFixed((D.tenants[a.id]||{}).wale,2)} yrs
+            </div>
+            {a.mapLinkUrl && <a className="link" style={{display:'inline-block',marginTop:10}} href={a.mapLinkUrl} target="_blank" rel="noopener noreferrer">Open in Maps ↗</a>}
+          </div>
+        ); })}
+      </div>
+    </Panel>
+  );
+}
+
+function AssetSection({ asset, month }){
+  const D = window.DASH;
+  const isFund = asset===FUND;
+  const A = D.assets.find(a=>a.id===asset) || {};
+  const R = monthRow(asset, month) || {};
+  const S = seriesOf(asset);
+  const T = D.tenants[asset] || {topTenants:[]};
+  const label = monthLabelOf(month);
+  const collEff = collectionEfficiency(R);
+  const psfRows = S.filter(r=>!isBlank(r.psf));
+  const billedRows = S.filter(r=>!isBlank(r.rentToBeBilled)||!isBlank(r.actualBilled));
+  const psfFoot = isFund && R.psfExcluded && R.psfExcluded.length
+    ? `excludes ${R.psfExcluded.map(assetName).join(', ')} (blank)`
+    : `weighted average · ${label}`;
+
+  return (
+    <div className="fade-in">
+      {isFund ? <FundAssetCards month={month}/> : <AssetProfile asset={A} row={R} wale={T.wale}/>}
+
+      <div className="grid" style={{gridTemplateColumns:'repeat(5,minmax(0,1fr))',marginTop:18}}>
+        <Kpi label="Occupancy" value={fmtFixed(R.occupancy,1)} unit="%" foot={`${fmtSft(R.leased)} of ${fmtSft(R.leasable)} sft`}/>
+        <Kpi label="Avg Rent PSF" value={isBlank(R.psf)?'—':'₹'+fmtFixed(R.psf,1)} unit={isBlank(R.psf)?'':'/sf'} foot={isBlank(R.psf)?`not entered for ${label}`:psfFoot}/>
+        <Kpi label="Gross Billing" value={fmtCr(R.grossBilling)} foot={`rent ${fmtCr(R.monthlyRent)} + CAM ${fmtCr(R.monthlyCam)}`}/>
+        <Kpi label="Collections" value={fmtCr(R.collections)} foot={`rent ${fmtCr(R.rentalCollections)} · CAM ${fmtCr(R.camCollections)} · other ${fmtCr(R.otherCollections)}`}/>
+        <Kpi label="Collection Efficiency" value={collEff==null?'—':collEff.toFixed(0)} unit={collEff==null?'':'%'} foot="rent + CAM collections ÷ gross billing"/>
       </div>
 
       <div className="grid" style={{gridTemplateColumns:'1.4fr 1fr',marginTop:18,alignItems:'start'}}>
-        <Panel title="Rent to be Billed vs Actual" sub="₹Cr · without tax">
-          {bva.length
-            ? <VBars data={bva} series={[{key:'billed',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actual',name:'Actual Billed',color:'var(--brand-orange)'}]} unit="cr"/>
-            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No billing data for this asset.</div>}
+        <Panel title="Gross Billing vs Collections" sub="₹Cr · by month">
+          <VBars data={S} series={[{key:'grossBilling',name:'Gross Billing',color:'var(--brand-maroon)'},{key:'collections',name:'Collections Inflow',color:'var(--brand-orange)'}]}/>
         </Panel>
         <Panel title="Top Tenants" sub="by monthly rent · ₹Cr">
-          {E.topTenants.length
-            ? <HBars data={E.topTenants.map(t=>({name:t.name,value:t.rent}))}/>
-            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No tenant data for this asset.</div>}
+          {T.topTenants.length
+            ? <HBars data={T.topTenants.slice(0,8).map(t=>({name:t.name,value:t.rent}))}/>
+            : <Empty>No tenants recorded in 4_TENANT_STACK_LEASE for this asset.</Empty>}
         </Panel>
       </div>
 
       <div className="grid" style={{gridTemplateColumns:'1.4fr 1fr',marginTop:18,alignItems:'start'}}>
-        <Panel title="Current & Future Avg Rental PSF" sub="₹/sf · weighted average">
-          {(E.rentalPsfTrend||[]).length
-            ? <LineChart data={E.rentalPsfTrend} xKey="q" series={[{key:'psf',name:'Avg Rent ₹/sf',color:'var(--brand-orange)'}]} unit="psf"/>
-            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No rental PSF data for this asset.</div>}
+        <Panel title="Average Rent PSF" sub="₹/sf · weighted average by month">
+          {psfRows.length
+            ? <LineChart data={psfRows} xKey="label" series={[{key:'psf',name:'Avg Rent ₹/sf',color:'var(--brand-orange)'}]} unit="psf"/>
+            : <Empty>Rent PSF has not been entered for this asset.</Empty>}
         </Panel>
-        <Panel title="Status-wise Area" sub="million sq.ft">
-          <div style={{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',justifyContent:'center'}}>
-            <Donut value={leasedPct} label="Leased" color="var(--brand-maroon)" size={146}/>
-            <div style={{flex:1,minWidth:150,display:'flex',flexDirection:'column',gap:14}}>
-              <AreaStat label="Total Area" value={`${E.totalArea!=null?E.totalArea:dash}M`} unit="sft" color="var(--ink-3)"/>
-              <AreaStat label="Leased Area" value={`${E.leasedArea!=null?E.leasedArea:dash}M`} unit="sft" color="var(--brand-maroon)"/>
-              <AreaStat label="Vacant Area" value={`${E.vacantArea!=null?E.vacantArea:dash}M`} unit="sft" color="var(--vacant)"/>
-            </div>
-          </div>
+        <OccupancyPanel row={R} sub={`sq.ft · ${label}`}/>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
+        <Panel title="Rent to be Billed vs Actual Billed" sub="₹Cr · without tax">
+          {billedRows.length
+            ? <VBars data={S} series={[{key:'rentToBeBilled',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actualBilled',name:'Actual Billed',color:'var(--brand-orange)'}]}/>
+            : <Empty height={120}>Rent to be Billed and Actual Billed are blank in 2_MONTHLY_INPUT for every reported month.</Empty>}
         </Panel>
       </div>
     </div>
   );
 }
 
-Object.assign(window, { InvestmentSection, ExecutiveSection, assetColor });
+Object.assign(window, { PortfolioSection, AssetSection, AnnualTable });
 
 </script>
 
@@ -882,21 +1158,41 @@ Object.assign(window, { InvestmentSection, ExecutiveSection, assetColor });
    SECTIONS — Financial Summary + Expense vs Collection
    ===================================================================== */
 
+const SOURCE_LINES = [
+  ['Rental Collections','rentalCollections'], ['CAM Collections','camCollections'], ['Other Collections','otherCollections'],
+  ['Redemption of FD','redemptionFd'], ['Other Inflow','otherInflow'],
+];
+const USAGE_LINES = [
+  ['Statutory Payments (TDS/GST)','statutory'], ['CAM Expense','camExpense'], ['Debt Service','debtService'], ['OPEX','opex'],
+  ['Investment in MF','investmentMf'], ['Creation of FD','creationFd'], ['Capex','capex'], ['Other Outflow','otherOutflow'], ['Bank Charges','bankCharges'],
+];
+const EXPENSE_SERIES = [
+  {key:'statutory',name:'Statutory (TDS/GST)',color:'var(--d4)'},
+  {key:'camExpense',name:'CAM',color:'var(--d2)'},
+  {key:'debtService',name:'Debt Service',color:'var(--brand-maroon)'},
+  {key:'opex',name:'OPEX',color:'var(--d5)'},
+];
+
 /* ============================ FINANCIAL SUMMARY ============================ */
-function FinancialSection({ asset }){
+function FinancialSection({ asset, month }){
   const D = window.DASH;
-  const F = D.financial[asset] || {openingBalance:0,totalInflow:0,totalOutflow:0,closingBalance:0,sources:[],usage:[],businessPlan:[],accounts:[]};
-  const assetName = (D.assets.find(a=>a.id===asset)||{}).name || asset;
+  const isFund = asset===FUND;
+  const R = monthRow(asset, month) || {};
+  const S = seriesOf(asset);
+  const label = monthLabelOf(month);
   const flow = [
-    { label:'Opening Balance', value:F.openingBalance, kind:'open' },
-    { label:'Total Inflow', value:F.totalInflow, kind:'in' },
-    { label:'Total Outflow', value:F.totalOutflow, kind:'out' },
-    { label:'Closing Balance', value:F.closingBalance, kind:'close' },
+    { label:'Opening Balance', value:R.openingBalance, kind:'open' },
+    { label:'Total Inflow', value:R.totalInflow, kind:'in' },
+    { label:'Total Outflow', value:R.totalOutflow, kind:'out' },
+    { label:'Closing Balance', value:R.closingBalance, kind:'close' },
   ];
+  const assetRows = D.assets.map(a=>({assetId:a.id, ...(monthRow(a.id,month)||{})}));
+  const overdraft = isFund ? assetRows.filter(r=>r.openingSource==='Over Draft Opening Balance').map(r=>assetName(r.assetId)) : [];
+  const gapAssets = isFund ? assetRows.filter(r=>num(r.outflowGap)>0).map(r=>assetName(r.assetId)) : [];
+
   return (
     <div className="fade-in">
-      {/* cashflow equation */}
-      <Panel title="Cash Position" sub={`${D.meta.reportMonth} · ${assetName} · ₹Cr`}>
+      <Panel title="Cash Position" sub={`${label} · ${assetName(asset)} · ₹Cr`}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'clamp(12px,2.4vw,30px)',flexWrap:'wrap',padding:'8px 0 4px'}}>
           {flow.map((f,i)=>(
             <React.Fragment key={i}>
@@ -912,112 +1208,163 @@ function FinancialSection({ asset }){
             </React.Fragment>
           ))}
         </div>
+        {R.openingSource==='Over Draft Opening Balance' && <div className="note">Opening balance for {label} comes from “Over Draft Opening Balance” — the workbook's closing-balance formula uses that column for this month.</div>}
+        {overdraft.length>0 && <div className="note">Opening balance for {overdraft.join(', ')} comes from “Over Draft Opening Balance” in {label}.</div>}
+        {!isBlank(R.tdsReceivable) && <div className="muted" style={{fontSize:12,marginTop:12,textAlign:'center'}}>TDS receivable: <b className="tnum" style={{color:'var(--ink-2)'}}>{fmtCr(R.tdsReceivable)}</b></div>}
       </Panel>
 
       <div className="grid" style={{gridTemplateColumns:'1fr 1fr',marginTop:18,alignItems:'start'}}>
-        <Panel title="Sources of Funds" sub="₹Cr inflow">
-          <HBars data={F.sources.map(s=>({name:s.label,value:s.value,color:'var(--ok)'}))} height={150}/>
+        <Panel title="Sources of Funds" sub={`₹Cr inflow · ${label}`}>
+          <HBars data={SOURCE_LINES.map(([name,key])=>({name,value:R[key],color:'var(--ok)'}))}/>
           <div className="divider" style={{margin:'14px 0'}}></div>
-          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Grand Total</span><span className="mono tnum" style={{fontWeight:700,color:'var(--ok)'}}>{fmtCr(F.sources.reduce((a,b)=>a+b.value,0))}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Total Inflow</span><span className="mono tnum" style={{fontWeight:700,color:'var(--ok)'}}>{fmtCr(R.totalInflow)}</span></div>
         </Panel>
-        <Panel title="Usage of Funds" sub="₹Cr outflow">
-          <HBars data={F.usage.map(s=>({name:s.label,value:s.value,color:'var(--danger)'}))} height={150}/>
+        <Panel title="Usage of Funds" sub={`₹Cr outflow · ${label}`}>
+          <HBars data={USAGE_LINES.map(([name,key])=>({name,value:R[key],color:'var(--danger)'}))}/>
           <div className="divider" style={{margin:'14px 0'}}></div>
-          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Grand Total</span><span className="mono tnum" style={{fontWeight:700,color:'var(--danger)'}}>–{fmtCr(F.usage.reduce((a,b)=>a+b.value,0))}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12.5,fontWeight:700}}>Total of all uses</span><span className="mono tnum" style={{fontWeight:700,color:'var(--danger)'}}>{fmtCr(R.outflowComponents)}</span></div>
+          {num(R.outflowGap)>0 && <div className="note">
+            The workbook's Total Outflow is {fmtCr(R.totalOutflow)}: {fmtCr(R.outflowGap)} of Investment in MF is not deducted in 2_MONTHLY_INPUT, so the Closing Balance above does not reflect it.{gapAssets.length?` Affects ${gapAssets.join(', ')}.`:''}
+          </div>}
         </Panel>
       </div>
+
+      {isFund && <>
+        <div className="section-label"><span className="bar"></span><h3>Cash Position by Asset · {label}</h3></div>
+        <Panel pad={false}>
+          <div style={{padding:'4px'}}>
+            <DataTable searchable={false} initialSort={{key:'closingBalance',dir:-1}}
+              columns={[
+                assetColumn,
+                {key:'openingBalance',label:'Opening',num:true,render:fmtCr},
+                {key:'collections',label:'Collections',num:true,render:fmtCr},
+                {key:'totalInflow',label:'Total Inflow',num:true,render:fmtCr},
+                {key:'totalOutflow',label:'Total Outflow',num:true,render:fmtCr},
+                {key:'closingBalance',label:'Closing',num:true,render:v=><b>{fmtCr(v)}</b>},
+              ]}
+              rows={assetRows}
+              totalRow={{assetId:'Fund',openingBalance:fmtCr(R.openingBalance),collections:fmtCr(R.collections),totalInflow:fmtCr(R.totalInflow),totalOutflow:fmtCr(R.totalOutflow),closingBalance:fmtCr(R.closingBalance)}}/>
+          </div>
+        </Panel>
+      </>}
 
       <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
-        <Panel title="Business Plan vs Actual Collections" sub="₹Cr · trailing 6 months">
-          <VBars data={F.businessPlan} series={[{key:'planned',name:'Planned',color:'var(--d3)'},{key:'actual',name:'Actual',color:'var(--brand-orange)'}]} unit="cr" height={260}/>
+        <Panel title="Business Plan vs Actual Collections" sub="₹Cr · planned collection vs collections inflow">
+          {hasAny(S,'plannedCollection')
+            ? <VBars data={S} series={[{key:'plannedCollection',name:'Planned (BP)',color:'var(--d3)'},{key:'collections',name:'Actual Collections',color:'var(--brand-orange)'}]} height={260}/>
+            : <Empty height={120}>Planned Collection / BP is blank in 2_MONTHLY_INPUT. The sheet's “Actual Collection / BP” column repeats the Opening Balance, so it is not charted.</Empty>}
         </Panel>
       </div>
 
-      <div className="section-label"><span className="bar"></span><h3>Cash Flow</h3></div>
+      <div className="section-label"><span className="bar"></span><h3>Monthly Cash Flow</h3></div>
       <Panel pad={false}>
         <div style={{padding:'4px'}}>
-          <DataTable
-            searchable={false}
-            initialSort={{key:'close',dir:-1}}
+          <DataTable searchable={false}
             columns={[
-              {key:'acct',label:'Asset',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
-              {key:'open',label:'Opening',num:true,render:v=>fmtCr(v)},
-              {key:'collections',label:'Collections',num:true,render:v=>fmtCr(v)},
-              {key:'inflow',label:'Other Inflow',num:true,render:v=>fmtCr(v)},
-              {key:'close',label:'Closing',num:true,render:v=><b>{fmtCr(v)}</b>},
+              {key:'label',label:'Month',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
+              {key:'openingBalance',label:'Opening',num:true,render:fmtCr},
+              {key:'totalInflow',label:'Total Inflow',num:true,render:fmtCr},
+              {key:'totalOutflow',label:'Total Outflow',num:true,render:fmtCr},
+              {key:'closingBalance',label:'Closing',num:true,render:v=><b>{fmtCr(v)}</b>},
+              {key:'netSurplus',label:'Net Surplus',num:true,render:fmtCr},
+              {key:'investmentMf',label:'Investment in MF',num:true,render:fmtCr},
+              {key:'tdsReceivable',label:'TDS Receivable',num:true,render:fmtCr},
             ]}
-            rows={F.accounts}
-          />
+            rows={S}/>
         </div>
+      </Panel>
+
+      <div className="section-label"><span className="bar"></span><h3>Annual Summary · June to May</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}><AnnualTable rows={D.annual[asset]||[]}/></div>
       </Panel>
     </div>
   );
 }
 
 /* ============================ EXPENSE vs COLLECTION ============================ */
-function ExpenseSection({ asset }){
-  const D = window.DASH;
-  const X = D.expenses[asset] || {monthly:[], billedVsActual:[]};
-  const totals = X.monthly.reduce((t,m)=>({coll:t.coll+m.collection,cam:t.cam+m.cam,debt:t.debt+m.debt,opex:t.opex+m.opex}),{coll:0,cam:0,debt:0,opex:0});
-  const totExp = totals.cam+totals.debt+totals.opex;
+function ExpenseSection({ asset, month }){
+  const S = seriesOf(asset);
+  const cur = monthRow(asset, month) || {};
+  const ytd = periodToDate(asset, month);
+  const coll = sumKey(ytd,'collections'), exp = sumKey(ytd,'totalExpense');
+  const net = (coll!=null && exp!=null) ? coll-exp : null;
+  const scope = `${cur.period||''} · ${ytd.length} month${ytd.length===1?'':'s'} to ${monthLabelOf(month)}`;
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-        <Kpi label="Total Collections" value={fmtCr(totals.coll)} accent="var(--ok)" icon="finance" foot="trailing 6 months"/>
-        <Kpi label="Total Expenses" value={fmtCr(totExp)} accent="var(--danger)" icon="expense" foot="CAM + Debt + OPEX"/>
-        <Kpi label="Net Surplus" value={fmtCr(totals.coll-totExp)} trend={Math.abs(Math.round((totals.coll-totExp)/totals.coll*100))+'%'} trendDir={totals.coll-totExp>=0?'up':'down'} foot="collection less expense"/>
-        <Kpi label="Cost-to-Collection" value={Math.round(totExp/totals.coll*100)} unit="%" accent="var(--d3)" foot="expense ratio"/>
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,minmax(0,1fr))'}}>
+        <Kpi label="Collections" value={fmtCr(coll)} foot={scope}/>
+        <Kpi label="Total Expenses" value={fmtCr(exp)} foot="statutory + CAM + debt + OPEX"/>
+        <Kpi label="Net Surplus" value={fmtCr(net)} trend={coll?Math.abs(Math.round(net/coll*100))+'%':null} trendDir={net>=0?'up':'down'} foot="collections less expenses"/>
+        <Kpi label="Cost-to-Collection" value={coll?Math.round(exp/coll*100):'—'} unit={coll?'%':''} foot="expenses ÷ collections"/>
       </div>
 
       <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
         <Panel title="Expense vs Collection" sub="₹Cr · collections vs stacked expense categories">
-          <ExpenseCombo data={X.monthly}/>
+          <ExpenseCombo data={S}/>
         </Panel>
       </div>
 
+      <div className="section-label"><span className="bar"></span><h3>Monthly Expense Detail</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable searchable={false}
+            columns={[
+              {key:'label',label:'Month',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
+              {key:'collections',label:'Collections',num:true,render:fmtCr},
+              ...EXPENSE_SERIES.map(s=>({key:s.key,label:s.name,num:true,render:fmtCr})),
+              {key:'totalExpense',label:'Total Expense',num:true,render:v=><b>{fmtCr(v)}</b>},
+              {key:'netSurplus',label:'Net Surplus',num:true,render:v=>isBlank(v)?'—':<span style={{color:v>=0?'var(--ok)':'var(--danger)'}}>{fmtCr(v)}</span>},
+            ]}
+            rows={S}/>
+        </div>
+      </Panel>
+
       <div className="grid" style={{gridTemplateColumns:'1fr',marginTop:18}}>
         <Panel title="Rent to be Billed vs Actual" sub="₹Cr · without tax">
-          <LineChart data={X.billedVsActual} series={[{key:'billed',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actual',name:'Actual Billed',color:'var(--brand-orange)'}]} unit="cr" height={240}/>
+          {hasAny(S,'rentToBeBilled')||hasAny(S,'actualBilled')
+            ? <LineChart data={S} xKey="label" series={[{key:'rentToBeBilled',name:'Rent to be Billed',color:'var(--brand-maroon)'},{key:'actualBilled',name:'Actual Billed',color:'var(--brand-orange)'}]} unit="cr" height={240}/>
+            : <Empty height={120}>Rent to be Billed and Actual Billed are blank in 2_MONTHLY_INPUT for every reported month.</Empty>}
         </Panel>
       </div>
     </div>
   );
 }
 
-/* collections line overlaid on stacked expense bars */
+/* collections bar beside stacked expense bars, one pair per month */
 function ExpenseCombo({ data }){
-  const wrapRef=React.useRef(null); const [w,setW]=React.useState(800); const [on,setOn]=React.useState(false);
-  React.useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); const t=setTimeout(()=>setOn(true),60); return ()=>{window.removeEventListener('resize',r);clearTimeout(t);}; },[]);
-  const series=[{key:'cam',name:'CAM',color:'var(--d2)'},{key:'debt',name:'Debt',color:'var(--brand-maroon)'},{key:'opex',name:'OPEX',color:'var(--d5)'}];
-  const height=330,padL=48,padR=16,padT=16,padB=30;
-  const expTot=data.map(d=>d.cam+d.debt+d.opex);
-  const rawMax=Math.max(...data.map(d=>d.collection),...expTot);
-  const max=Math.ceil(rawMax/100)*100*1.05;
-  const plotW=w-padL-padR, plotH=height-padT-padB;
+  const wrapRef=React.useRef(null); const [w,setW]=React.useState(800); const on=useChartReveal();
+  React.useEffect(()=>{ const r=()=>wrapRef.current&&setW(wrapRef.current.clientWidth); r(); window.addEventListener('resize',r); return ()=>window.removeEventListener('resize',r); },[]);
+  const series=EXPENSE_SERIES;
+  if(!data.length) return <Empty height={330}>No expense data for this selection.</Empty>;
+  const expTot=data.map(d=>series.reduce((a,s)=>a+num(d[s.key]),0));
+  const scale=niceScale([...data.map(d=>d.collections),...expTot],{tickCount:4});
+  const max=scale.max;
+  const tickLabels=scale.ticks.map(fmtAxis);
+  const height=330,padL=Math.max(48,Math.max(...tickLabels.map(x=>x.length))*6+20),padR=16,padT=16,padB=30;
+  const plotW=Math.max(0,w-padL-padR), plotH=height-padT-padB;
   const slot=plotW/data.length;
-  const barW=Math.min(26, slot*0.26);
-  const gap=Math.min(10, slot*0.06);
+  const barW=Math.max(0,Math.min(26, slot*0.26));
+  const gap=Math.max(0,Math.min(10, slot*0.06));
   const Y=v=>padT+plotH-v/max*plotH;
   const baseY=padT+plotH;
   return (
     <div ref={wrapRef}>
       <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} style={{display:'block',overflow:'visible'}}>
-        {Array.from({length:5}).map((_,i)=>{ const v=max*i/4,y=Y(v);
-          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={padL-8} y={y+3} fontSize="9.5" fill="var(--ink-3)" fontFamily="var(--mono)" textAnchor="end">{'₹'+Math.round(v)}</text></g>; })}
+        {scale.ticks.map((v,i)=>{ const y=Y(v);
+          return <g key={i}><line x1={padL} x2={w-padR} y1={y} y2={y} stroke="var(--grid)"/><text x={padL-8} y={y+3} fontSize="9.5" fill="var(--ink-3)" fontFamily="var(--mono)" textAnchor="end">{'₹'+fmtAxis(v)}</text></g>; })}
         {data.map((d,i)=>{ const cx=padL + slot*i + slot/2; const tot=expTot[i]; let acc=0;
           const collX=cx-barW-gap/2, expX=cx+gap/2;
-          const tip=`<div class="tip-row"><span class="tip-k">${d.m}</span></div><div class="tip-row"><span class="tdot" style="background:var(--ok)"></span><span>Collection</span> <b style="margin-left:auto">${fmtCr(d.collection)}</b></div>`+series.map(s=>`<div class="tip-row"><span class="tdot" style="background:${s.color}"></span><span>Expense · ${s.name}</span> <b style="margin-left:auto">${fmtCr(d[s.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.18);padding-top:4px"><span class="tip-k">Total Expense</span> <b style="margin-left:auto">${fmtCr(tot)}</b></div>`;
+          const tip=`<div class="tip-row"><span class="tip-k">${escHtml(d.label)}</span></div><div class="tip-row"><span class="tdot" style="background:var(--ok)"></span><span>Collections</span> <b style="margin-left:auto">${fmtCr(d.collections)}</b></div>`+series.map(s=>`<div class="tip-row"><span class="tdot" style="background:${s.color}"></span><span>${escHtml(s.name)}</span> <b style="margin-left:auto">${fmtCr(d[s.key])}</b></div>`).join('')+`<div class="tip-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,.18);padding-top:4px"><span class="tip-k">Total Expense</span> <b style="margin-left:auto">${fmtCr(tot)}</b></div>`;
           return (
             <g key={i} onMouseMove={e=>showTip(tip,e.clientX,e.clientY)} onMouseLeave={hideTip} style={{cursor:'default'}}>
-              {/* collection bar */}
-              <rect x={collX} y={on?Y(d.collection):baseY} width={barW} height={on?baseY-Y(d.collection):0} fill="var(--ok)" rx="3" style={{transition:`all .32s cubic-bezier(.2,.8,.2,1) ${i*.05}s`}}/>
-              {/* stacked expense bar — single rounded top via clip, square segments */}
+              <rect x={collX} y={on?Y(num(d.collections)):baseY} width={barW} height={on?baseY-Y(num(d.collections)):0} fill="var(--ok)" rx="3" style={{transition:`all .32s cubic-bezier(.2,.8,.2,1) ${i*.05}s`}}/>
               <defs><clipPath id={'ec'+i}><rect x={expX} y={Y(tot)} width={barW} height={baseY-Y(tot)} rx="3"/></clipPath></defs>
               <g clipPath={`url(#ec${i})`}>
-              {series.map((s,si)=>{ const segH=d[s.key]/max*plotH; const y=baseY-(acc+d[s.key])/max*plotH; acc+=d[s.key];
+              {series.map((s,si)=>{ const segH=num(d[s.key])/max*plotH; const y=baseY-(acc+num(d[s.key]))/max*plotH; acc+=num(d[s.key]);
                 return <rect key={si} x={expX} y={on?y:baseY} width={barW} height={on?segH:0} fill={s.color} rx={0} style={{transition:`all .32s cubic-bezier(.2,.8,.2,1) ${i*.05+si*.02}s`}}/>; })}
               </g>
-              <text x={cx} y={height-10} fontSize="9.5" fill="var(--ink-3)" textAnchor="middle" fontFamily="var(--mono)">{d.m}</text>
+              <text x={cx} y={height-10} fontSize="9.5" fill="var(--ink-3)" textAnchor="middle" fontFamily="var(--mono)">{d.label}</text>
             </g>
           ); })}
       </svg>
@@ -1041,60 +1388,123 @@ Object.assign(window, { FinancialSection, ExpenseSection });
 
 /* ============================ STACK PLAN ============================ */
 function StackSection({ asset }){
+  return asset===FUND ? <StackOverview/> : <StackPlanAsset asset={asset}/>;
+}
+
+function StackOverview(){
+  const D = window.DASH;
+  const rows = D.assets.map(a=>{ const t=((D.stackPlan[a.id]||{}).totals||{}); const f=t.Fund||{}, all=t.All||{};
+    return {assetId:a.id, floors:all.floors, areaK:f.areaK, vacantK:f.vacantK, units:all.units, unknownArea:all.unknownArea, leasableK:a.leasable/1000}; });
+  return (
+    <div className="fade-in">
+      <Panel title="Stacking Plans" sub="fund-held area by asset · pick an asset in the top bar for its floor-by-floor plan" pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable searchable={false}
+            columns={[
+              assetColumn,
+              {key:'floors',label:'Floors',num:true},
+              {key:'units',label:'Units',num:true},
+              {key:'areaK',label:'Fund Area (K sft)',num:true,render:v=>fmtFixed(v,1)},
+              {key:'leasableK',label:'Leasable (K sft)',num:true,render:v=>fmtFixed(v,1)},
+              {key:'vacantK',label:'Vacant (K sft)',num:true,render:v=>fmtFixed(v,1)},
+              {key:'unknownArea',label:'Units without area',num:true},
+            ]}
+            rows={rows}/>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* The sheet can carry the whole building, not just the fund's floors, so every
+   area figure is scope-dependent: `scope` drives the KPI row and rendered units. */
+function StackPlanAsset({ asset }){
   const D = window.DASH;
   const aId = asset;
-  const S = (D.stackPlan&&D.stackPlan[aId]) || {asset:aId,legend:[],floors:[]};
-  const pickName = (D.assets.find(a=>a.id===aId)||{}).name || S.asset;
-  const [hl,setHl]=React.useState(null); // highlighted category
+  const S = (D.stackPlan&&D.stackPlan[aId]) || {asset:aId,legend:[],floors:[],totals:{}};
+  const pickName = assetName(aId);
+  const [hl,setHl]=React.useState(null);
+  const [scope,setScope]=React.useState('Fund');
   const catColor = key => (S.legend.find(l=>l.key===key)||{}).color;
-  const totalK = S.floors.flatMap(f=>f.units).reduce((a,u)=>a+u.k,0);
-  const vacantK = S.floors.flatMap(f=>f.units).filter(u=>u.cat==='vacant').reduce((a,u)=>a+u.k,0);
-  // floor max width for proportional sizing
-  const floorTotals = S.floors.map(f=>f.units.reduce((a,u)=>a+u.k,0));
-  const maxFloor = Math.max(...floorTotals);
+  const catLabel = key => (S.legend.find(l=>l.key===key)||{}).label || key;
+
+  const inScope = u => scope==='All' || u.own===scope;
+  const T = (S.totals && S.totals[scope==='All'?'All':'Fund']) || {areaK:0,vacantK:0,floors:0,unknownArea:0};
+  const othersT = (S.totals && S.totals.Others) || {units:0};
+  const hasOthers = othersT.units > 0;
+  const leasableK = ((D.assets.find(a=>a.id===aId)||{}).leasable||0)/1000;
+
+  const floors = S.floors
+    .map(f=>({floor:f.floor, units:f.units.filter(inScope)}))
+    .filter(f=>f.units.length>0);
+
+  // Unknown-area units get a nominal share so the floor still draws.
+  const NOMINAL_K = 12;
+  const unitSpan = u => (u.kKnown && u.k>0) ? u.k : NOMINAL_K;
+  const floorTotals = floors.map(f=>f.units.reduce((a,u)=>a+unitSpan(u),0));
+  const maxFloor = floorTotals.length ? Math.max(...floorTotals) : 0;
+  const widthPct = ft => maxFloor>0 ? Math.max(ft/maxFloor*100, 4) : 100;
+  const pct = T.areaK ? Math.round(T.vacantK/T.areaK*100) : 0;
 
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-        <Kpi label="Asset" value={pickName} accent={assetColor(aId)} icon="stack"/>
-        <Kpi label="Total Floor Area" value={totalK} unit="K sft" accent="var(--brand-maroon)"/>
-        <Kpi label="Vacant Area" value={vacantK} unit="K sft" accent="var(--warn)" foot={`${totalK ? Math.round(vacantK/totalK*100) : 0}% of stack`}/>
-        <Kpi label="Floors" value={S.floors.length} accent="var(--d3)" foot="leasable floors"/>
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,minmax(0,1fr))'}}>
+        <Kpi label="Asset" value={pickName} text/>
+        <Kpi label={scope==='All'?'Building Floor Area':'Fund Floor Area'} value={fmtFixed(T.areaK,1)} unit="K sft"
+             foot={scope==='All' ? 'entire building' : `vs ${fmtFixed(leasableK,1)}K sft leasable`}/>
+        <Kpi label="Vacant Area" value={fmtFixed(T.vacantK,1)} unit="K sft" foot={`${pct}% of ${scope==='All'?'building':'fund'} area`}/>
+        <Kpi label="Floors" value={T.floors} foot={T.unknownArea ? `${T.unknownArea} unit(s) without area` : (scope==='All'?'floors in building':'fund-held floors')}/>
       </div>
 
-      <Panel title="Stacking Plan" sub={`${pickName} · grouped by industry`} style={{marginTop:18}}
+      <Panel title="Stacking Plan" sub={`${pickName} · ${scope==='All'?'entire building':'fund-held floors'}`} style={{marginTop:18}}
         right={<div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
           <div className="legend">{S.legend.map(l=>(
           <div key={l.key} className="li" style={{cursor:'pointer',opacity:hl&&hl!==l.key?.4:1}}
             onMouseEnter={()=>setHl(l.key)} onMouseLeave={()=>setHl(null)}>
             <span className="sw" style={{background:l.color}}></span>{l.label}
-          </div>))}</div>
+          </div>))}
+          {scope==='All' && hasOthers && <div className="li" title="Floor held by a third party, not the fund">
+            <span className="sw" style={{background:'transparent',border:'1.5px dashed var(--ink-3)'}}></span>Third-party
+          </div>}
+          </div>
+          {hasOthers && <div className="seg">
+            <button className={scope==='Fund'?'on':''} onClick={()=>setScope('Fund')}>Fund</button>
+            <button className={scope==='All'?'on':''} onClick={()=>setScope('All')}>Building</button>
+          </div>}
         </div>}>
         <div style={{display:'flex',flexDirection:'column',gap:9}}>
-          {S.floors.length===0 && <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No stacking data for this asset.</div>}
-          {S.floors.map(f=>{ const ft=f.units.reduce((a,u)=>a+u.k,0);
+          {floors.length===0 && <Empty>No stack-plan rows for this asset in 4_TENANT_STACK_LEASE.</Empty>}
+          {floors.map(f=>{ const ft=f.units.reduce((a,u)=>a+unitSpan(u),0);
             return (
               <div key={f.floor} style={{display:'flex',alignItems:'center',gap:14}}>
                 <div style={{width:54,flexShrink:0,textAlign:'right'}}>
                   <div className="mono" style={{fontSize:9,color:'var(--ink-3)',letterSpacing:'.1em'}}>FLOOR</div>
                   <div style={{fontSize:20,fontWeight:700,lineHeight:1}} className="tnum">{f.floor}</div>
                 </div>
-                <div style={{flex:1,display:'flex',gap:5,height:54,width:`${ft/maxFloor*100}%`}}>
+                <div style={{flex:1,minWidth:0}}>
+                <div style={{width:`${widthPct(ft)}%`,display:'flex',gap:5,height:54,minWidth:0}}>
                   {f.units.map((u,i)=>{ const dim = hl && hl!==u.cat;
+                    const isVacant = u.cat==='vacant';
+                    const isOther  = u.own==='Others';
+                    const areaTxt  = u.kKnown ? `${u.k}K sft` : 'area n/a';
                     return (
                       <div key={i}
-                        onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${catColor(u.cat)}"></span><span class="tip-k">${(S.legend.find(l=>l.key===u.cat)||{}).label}</span></div><b>${u.t}</b><div style="opacity:.7;margin-top:2px">${u.k}K sft</div>`,e.clientX,e.clientY)}
+                        onMouseMove={e=>showTip(`<div class="tip-row"><span class="tdot" style="background:${catColor(u.cat)||'var(--ink-3)'}"></span><span class="tip-k">${escHtml(catLabel(u.cat))}</span></div><b>${escHtml(u.t)}</b><div style="opacity:.7;margin-top:2px">${escHtml(areaTxt)} · ${isOther?'Third-party':'Fund-held'}</div>`,e.clientX,e.clientY)}
                         onMouseLeave={hideTip}
-                        style={{flex:u.k,minWidth:0,borderRadius:7,padding:'8px 11px',display:'flex',flexDirection:'column',justifyContent:'center',cursor:'default',
-                          background: u.cat==='vacant'?'repeating-linear-gradient(45deg,var(--vacant),var(--vacant) 7px,transparent 7px,transparent 14px)':catColor(u.cat),
-                          border: u.cat==='vacant'?'1px dashed var(--ink-3)':'none',
-                          color: u.cat==='vacant'?'var(--ink-2)':'#fff',
-                          opacity:dim?.25:1, transition:'opacity .2s', overflow:'hidden'}}>
+                        style={{flexGrow:unitSpan(u),flexShrink:1,flexBasis:0,minWidth:0,borderRadius:7,padding:'8px 11px',display:'flex',flexDirection:'column',justifyContent:'center',cursor:'default',
+                          background: isVacant
+                            ? 'repeating-linear-gradient(45deg,var(--vacant),var(--vacant) 7px,transparent 7px,transparent 14px)'
+                            : (isOther ? 'transparent' : (catColor(u.cat)||'var(--ink-3)')),
+                          border: isVacant ? '1px dashed var(--ink-3)'
+                                : (isOther ? `1.5px dashed ${catColor(u.cat)||'var(--ink-3)'}` : 'none'),
+                          color: (isVacant||isOther) ? 'var(--ink-2)' : '#fff',
+                          opacity: dim?.25:(isOther?.75:1), transition:'opacity .2s', overflow:'hidden'}}>
                         <div style={{fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.t}</div>
-                        <div className="mono" style={{fontSize:10,opacity:.85,whiteSpace:'nowrap'}}>{u.k}K sft</div>
+                        <div className="mono" style={{fontSize:10,opacity:.85,whiteSpace:'nowrap'}}>{areaTxt}</div>
                       </div>
                     ); })}
                 </div>
+              </div>
               </div>
             ); })}
         </div>
@@ -1106,43 +1516,66 @@ function StackSection({ asset }){
 /* ============================ TENANT PROFILE ============================ */
 function TenantSection({ asset }){
   const D = window.DASH;
-  const aId = asset;
-  const T = (D.tenant&&D.tenant[aId]) || {asset:aId,topTenants:[],effectiveLed:'—',leaseExpiry:[]};
+  const isFund = asset===FUND;
+  const T = D.tenants[asset] || {rows:[],topTenants:[],leaseExpiry:[],count:0};
   const top0 = T.topTenants[0];
   const totalExpiry = T.leaseExpiry.reduce((a,d)=>a+d.sft,0);
   const maxExpiry = T.leaseExpiry.length ? Math.max(...T.leaseExpiry.map(d=>d.sft)) : 0;
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-        <Kpi label="Asset" value={(D.assets.find(a=>a.id===aId)||{}).name || T.asset} accent={assetColor(aId)} icon="tenant"/>
-        <Kpi label="Top Tenant" value={top0 ? top0.name : '—'} accent="var(--brand-maroon)" foot={top0 ? `${fmtCr(top0.rent)} / month` : 'No tenants on record'}/>
-        <Kpi label="Area Expiring" value={(totalExpiry/1000).toFixed(0)} unit="K sft" accent="var(--warn)" foot="across all quarters"/>
-        <Kpi label="Effective LED" value={T.effectiveLed || '—'} accent="var(--d3)" icon="clock" foot="lease end date"/>
+      <div className="grid" style={{gridTemplateColumns:'repeat(5,minmax(0,1fr))'}}>
+        <Kpi label="Tenants" value={T.count} foot={`${fmtCr(T.totalRent)} monthly rent · ${fmtSft(T.totalArea)} sft`}/>
+        <Kpi label="WALE" value={fmtFixed(T.wale,2)} unit="yrs" foot={`area-weighted · as of ${D.meta.asOf}`}/>
+        <Kpi label="Top Tenant" value={top0 ? top0.name : '—'} text foot={top0 ? `${fmtCr(top0.rent)} / month` : 'No tenants on record'}/>
+        <Kpi label="Expiring in 12 Months" value={fmtKsft(T.expiring12m)} unit="sft" foot={`leases ending after ${D.meta.asOf}`}/>
+        <Kpi label="Missing Area" value={T.needsArea} foot={T.expiredCount ? `${T.expiredCount} lease(s) already ended` : 'tenant rows without leasable area'}/>
       </div>
 
       <div className="grid" style={{gridTemplateColumns:'1fr 1.6fr',marginTop:18,alignItems:'start'}}>
         <Panel title="Top Tenants" sub="by monthly rent · ₹Cr">
           {T.topTenants.length
-            ? <HBars data={T.topTenants.map(t=>({name:t.name,value:t.rent}))}/>
-            : <div style={{padding:'48px 12px',textAlign:'center',color:'var(--ink-3)'}}>No tenant data for this asset.</div>}
+            ? <HBars data={T.topTenants.slice(0,10).map(t=>({name:t.name,value:t.rent,color:isFund?assetColorOf(t.assets[0]):undefined}))}/>
+            : <Empty>No tenant data for this asset.</Empty>}
         </Panel>
-        <Panel title="Upcoming Lease Expiry" sub="sq.ft expiring by quarter">
+        <Panel title="Upcoming Lease Expiry" sub="sq.ft by quarter of lease end date">
           <ExpiryChart data={T.leaseExpiry}/>
         </Panel>
       </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Tenant Register</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable
+            initialSort={{key:'monthlyRent',dir:-1}}
+            columns={[
+              ...(isFund?[assetColumn]:[]),
+              {key:'name',label:'Tenant',render:v=><span style={{fontWeight:600}}>{v}</span>},
+              {key:'monthlyRent',label:'Monthly Rent',num:true,render:fmtCr},
+              {key:'psf',label:'Rent ₹/sf',num:true,render:v=>fmtFixed(v,1)},
+              {key:'area',label:'Area (sft)',num:true,render:fmtSft},
+              {key:'start',label:'Lease Start',render:v=><span className="mono" style={{fontSize:11}}>{dash(v)}</span>},
+              {key:'endKey',label:'Lease End',render:(_,r)=><span className="mono" style={{fontSize:11}}>{dash(r.end)}</span>},
+              {key:'remainingYears',label:'Years Left',num:true,render:v=>fmtFixed(v,1)},
+              {key:'areaStatus',label:'Status',render:(v,r)=><Badge>{r.expired?'Expired':v}</Badge>},
+            ]}
+            rows={T.rows}
+          />
+        </div>
+      </Panel>
 
       <div className="section-label"><span className="bar"></span><h3>Lease Expiry Schedule</h3></div>
       <Panel pad={false}>
         <div style={{padding:'4px'}}>
           <DataTable
-            initialSort={{key:'sft',dir:-1}}
+            searchable={false}
             columns={[
-              {key:'q',label:'Quarter',render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
-              {key:'sft',label:'Area Expiring (sft)',num:true,render:v=>v.toLocaleString('en-IN')},
-              {key:'share',label:'Share of Total',num:true,render:(_,r)=>(r.sft/(totalExpiry||1)*100).toFixed(1)+'%'},
+              {key:'q',label:'Quarter',noSort:true,render:v=><span className="mono" style={{fontWeight:600,fontSize:11.5}}>{v}</span>},
+              {key:'sft',label:'Area Expiring (sft)',num:true,render:fmtSft},
+              {key:'share',label:'Share',num:true,noSort:true,render:(_,r)=>(r.sft/(totalExpiry||1)*100).toFixed(1)+'%'},
+              {key:'tenants',label:'Tenants',noSort:true,render:v=><span style={{fontSize:12,color:'var(--ink-2)'}}>{v.join(', ')}</span>},
               {key:'bar',label:'',noSort:true,render:(_,r)=><div style={{height:8,width:120,background:'var(--surface-3)',borderRadius:5,overflow:'hidden'}}><div style={{height:'100%',width:`${r.sft/(maxExpiry||1)*100}%`,background:'var(--brand-orange)',borderRadius:5}}></div></div>},
             ]}
-            rows={T.leaseExpiry.filter(d=>d.sft>0)}
+            rows={T.leaseExpiry}
           />
         </div>
       </Panel>
@@ -1151,17 +1584,16 @@ function TenantSection({ asset }){
 }
 
 function ExpiryChart({ data }){
-  const [on,setOn]=React.useState(false);
-  React.useEffect(()=>{const t=setTimeout(()=>setOn(true),50);return ()=>clearTimeout(t);},[]);
-  if(!data.length) return <div style={{height:230,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--ink-3)'}}>No lease expiry data.</div>;
-  const max=Math.max(...data.map(d=>d.sft))*1.12||1;
+  const on=useChartReveal();
+  if(!data.length) return <Empty height={230}>No upcoming lease expiries.</Empty>;
+  const max=niceScale(data.map(d=>d.sft)).max;
   return (
     <div style={{display:'flex',alignItems:'flex-end',gap:6,height:230,paddingTop:8}}>
       {data.map((d,i)=>(
         <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:7,height:'100%',justifyContent:'flex-end'}}
-          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${d.q}</span></div><b>${d.sft.toLocaleString('en-IN')} sft</b>`,e.clientX,e.clientY)}
+          onMouseMove={e=>showTip(`<div class="tip-row"><span class="tip-k">${escHtml(d.q)}</span></div><b>${fmtSft(d.sft)} sft</b><div style="opacity:.75;margin-top:2px">${escHtml(d.tenants.join(', '))}</div>`,e.clientX,e.clientY)}
           onMouseLeave={hideTip}>
-          {d.sft>0 && <span className="mono tnum" style={{fontSize:9.5,color:'var(--ink-2)'}}>{(d.sft/1000).toFixed(0)}K</span>}
+          {d.sft>0 && <span className="mono tnum" style={{fontSize:9.5,color:'var(--ink-2)'}}>{fmtKsft(d.sft)}</span>}
           <div style={{width:'100%',maxWidth:30,height:on?`${d.sft/max*100}%`:'0%',minHeight:d.sft>0?2:0,
             background:'var(--brand-maroon)',
             borderRadius:'4px 4px 0 0',transition:`height .32s cubic-bezier(.2,.8,.2,1) ${i*.04}s`,cursor:'default'}}/>
@@ -1178,32 +1610,38 @@ Object.assign(window, { StackSection, TenantSection });
 
 <script type="text/babel">
 /* =====================================================================
-   SECTIONS — Approvals + Compliance Register
+   SECTIONS — Approvals + Compliance Register + Data Quality
    ===================================================================== */
+
+const smallText = v => <span style={{fontSize:12,color:'var(--ink-2)'}}>{dash(v)}</span>;
+const monoText = v => <span className="mono" style={{fontSize:11}}>{dash(v)}</span>;
 
 /* ============================ APPROVALS ============================ */
 function ApprovalSection({ asset }){
   const D = window.DASH;
-  const aId = asset;
-  const A = (D.approvals&&D.approvals[aId]) || {asset:aId,asOf:null,rows:[],summary:{complied:0,revisionRequired:0}};
-  const total = A.summary.complied + A.summary.revisionRequired;
-  const compliedPct = total ? A.summary.complied/total*100 : 0;
-  const revisionPct = total ? A.summary.revisionRequired/total*100 : 0;
+  const A = (D.approvals&&D.approvals[asset]) || {rows:[],summary:{total:0,complied:0,inProgress:0,revisionRequired:0,unclassified:0}};
+  const total = A.summary.total;
+  const inProgress = A.summary.inProgress || 0;
+  const needsReview = (A.summary.revisionRequired || 0) + (A.summary.unclassified || 0);
+  const pct = n => total ? n/total*100 : 0;
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-        <Kpi label="Total Approvals" value={total} accent="var(--brand-maroon)" icon="approval" foot={A.asOf ? `${A.asset} · as of ${A.asOf}` : A.asset}/>
-        <Kpi label="Complied" value={A.summary.complied} accent="var(--ok)" foot={`${Math.round(compliedPct)}% of approvals`}/>
-        <Kpi label="Revision Required" value={A.summary.revisionRequired} accent="var(--danger)" foot="action needed"/>
-        <div className="kpi" style={{"--accent":"var(--brand-orange)"}}>
-          <div className="kpi-label">Compliance Health</div>
+      <div className="grid" style={{gridTemplateColumns:'repeat(5,minmax(0,1fr))'}}>
+        <Kpi label="Total Approvals" value={total} foot={assetName(asset)}/>
+        <Kpi label="Complied" value={A.summary.complied} foot={`${Math.round(pct(A.summary.complied))}% of approvals`}/>
+        <Kpi label="In Progress" value={inProgress} foot="work underway"/>
+        <Kpi label="Needs Review" value={needsReview} foot="revision or missing status"/>
+        <div className="kpi">
+          <div className="kpi-label">Approval Health</div>
           <div style={{marginTop:14,height:12,borderRadius:6,background:'var(--surface-3)',overflow:'hidden',display:'flex'}}>
-            <div style={{width:`${compliedPct}%`,background:'var(--ok)'}}></div>
-            <div style={{width:`${revisionPct}%`,background:'var(--danger)'}}></div>
+            <div style={{width:`${pct(A.summary.complied)}%`,background:'var(--ok)'}}></div>
+            <div style={{width:`${pct(inProgress)}%`,background:'var(--info)'}}></div>
+            <div style={{width:`${pct(needsReview)}%`,background:'var(--danger)'}}></div>
           </div>
           <div className="kpi-foot" style={{justifyContent:'space-between'}}>
             <span style={{color:'var(--ok)',fontWeight:600}}>{A.summary.complied} ok</span>
-            <span style={{color:'var(--danger)',fontWeight:600}}>{A.summary.revisionRequired} flagged</span>
+            <span style={{color:'var(--info)',fontWeight:600}}>{inProgress} active</span>
+            <span style={{color:'var(--danger)',fontWeight:600}}>{needsReview} review</span>
           </div>
         </div>
       </div>
@@ -1213,12 +1651,17 @@ function ApprovalSection({ asset }){
         <div style={{padding:'4px'}}>
           <DataTable
             columns={[
+              ...(asset===FUND?[assetColumn]:[]),
               {key:'desc',label:'Approval Description',render:v=><span style={{fontWeight:600}}>{v}</span>},
-              {key:'authority',label:'Issuing Authority',render:v=><span style={{color:'var(--ink-2)',fontSize:12}}>{v}</span>},
-              {key:'issued',label:'Issued',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
-              {key:'validity',label:'Validity',render:v=><span className="mono" style={{fontSize:11,color:v==='Not Applicable'?'var(--ink-3)':'var(--ink)'}}>{v}</span>},
+              {key:'authority',label:'Issuing Authority',render:smallText},
+              {key:'issued',label:'Issued',render:monoText},
+              {key:'validity',label:'Validity',render:monoText},
+              {key:'timeline',label:'Target Timeline',render:monoText},
               {key:'risk',label:'Risk',render:v=><Badge>{v}</Badge>},
               {key:'status',label:'Status',render:v=><Badge>{v}</Badge>},
+              {key:'lastUpdated',label:'Last Updated',render:monoText},
+              {key:'owner',label:'Owner / SPOC',render:smallText},
+              {key:'remarks',label:'Remarks',render:smallText},
             ]}
             rows={A.rows}
           />
@@ -1231,21 +1674,21 @@ function ApprovalSection({ asset }){
 /* ============================ COMPLIANCE REGISTER ============================ */
 function ComplianceSection({ asset }){
   const D = window.DASH;
-  const aId = asset;
-  const C = (D.compliance&&D.compliance[aId]) || {asset:aId,asOf:null,rows:[],summary:{inProgress:0,dueSoon:0,ok:0,notDue:0,na:0}};
+  const C = (D.compliance&&D.compliance[asset]) || {rows:[],summary:{inProgress:0,dueSoon:0,ok:0,notDue:0,na:0,unclassified:0}};
   const s = C.summary;
   const cards = [
-    { label:'In Progress', value:s.inProgress, color:'var(--info)', kind:'info' },
-    { label:'Due Soon', value:s.dueSoon, color:'var(--warn)', kind:'warn' },
-    { label:'OK', value:s.ok, color:'var(--ok)', kind:'ok' },
-    { label:'Not Due', value:s.notDue, color:'var(--ink-3)', kind:'muted' },
-    { label:'Not Applicable', value:s.na, color:'var(--ink-3)', kind:'muted' },
+    { label:'In Progress', value:s.inProgress, kind:'info' },
+    { label:'Due Soon', value:s.dueSoon, kind:'warn' },
+    { label:'OK', value:s.ok, kind:'ok' },
+    { label:'Not Due', value:s.notDue, kind:'muted' },
+    { label:'Not Applicable', value:s.na, kind:'muted' },
+    { label:'Unclassified', value:s.unclassified||0, kind:'danger' },
   ];
   return (
     <div className="fade-in">
-      <div className="grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+      <div className="grid" style={{gridTemplateColumns:'repeat(6,minmax(0,1fr))'}}>
         {cards.map((c,i)=>(
-          <div key={i} className="kpi" style={{"--accent":c.color}}>
+          <div key={i} className="kpi">
             <div className="kpi-label">{c.label}</div>
             <div className="kpi-value tnum">{c.value}</div>
             <div className="kpi-foot"><Badge kind={c.kind}>{c.label}</Badge></div>
@@ -1253,18 +1696,23 @@ function ComplianceSection({ asset }){
         ))}
       </div>
 
-      <div className="section-label"><span className="bar"></span><h3>Compliance Register · {C.asset}{C.asOf ? ` · as of ${C.asOf}` : ''}</h3></div>
+      <div className="section-label"><span className="bar"></span><h3>Compliance Register · {assetName(asset)}</h3></div>
       <Panel pad={false}>
         <div style={{padding:'4px'}}>
           <DataTable
             columns={[
+              ...(asset===FUND?[assetColumn]:[]),
               {key:'item',label:'Compliance Item',render:v=><span style={{fontWeight:600}}>{v}</span>},
-              {key:'cat',label:'Category',render:v=><span style={{fontSize:12,color:'var(--ink-2)'}}>{v}</span>},
-              {key:'freq',label:'Frequency',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
-              {key:'due',label:'Due Date',render:v=><span className="mono" style={{fontSize:11}}>{v}</span>},
-              {key:'who',label:'Responsible',render:v=><span style={{fontSize:12}}>{v}</span>},
-              {key:'risk',label:'Consequence of Non-Compliance',render:v=><span style={{fontSize:11.5,color:'var(--ink-2)'}}>{v}</span>},
+              {key:'cat',label:'Category',render:smallText},
+              {key:'freq',label:'Frequency',render:monoText},
+              {key:'due',label:'Due Date',render:monoText},
+              {key:'filed',label:'Date Filed',render:monoText},
+              {key:'who',label:'Responsible',render:smallText},
+              {key:'risk',label:'Consequence of Non-Compliance',render:smallText},
               {key:'rag',label:'RAG Status',render:v=><Badge>{v}</Badge>},
+              {key:'lastUpdated',label:'Last Updated',render:monoText},
+              {key:'owner',label:'Owner / SPOC',render:smallText},
+              {key:'remarks',label:'Remarks',render:smallText},
             ]}
             rows={C.rows}
           />
@@ -1274,48 +1722,95 @@ function ComplianceSection({ asset }){
   );
 }
 
-Object.assign(window, { ApprovalSection, ComplianceSection });
+/* ============================ DATA QUALITY ============================ */
+function DataQualitySection(){
+  const Q = window.DASH.dataQuality || {checks:[],warnings:[]};
+  const pending = Q.checks.filter(c=>c.status && c.status!=='OK');
+  return (
+    <div className="fade-in">
+      <div className="grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))'}}>
+        <div className="kpi">
+          <div className="kpi-label">Workbook Status</div>
+          <div style={{marginTop:16}}><Badge>{Q.overall}</Badge></div>
+          <div className="kpi-foot">overall status from DATA_QUALITY_CHECKS</div>
+        </div>
+        <Kpi label="Checks Needing Action" value={pending.length} unit={`of ${Q.checks.length}`} foot="resolve before publishing"/>
+        <Kpi label="Reconciliation Notes" value={Q.warnings.length} foot="found while building this dashboard"/>
+      </div>
+
+      <div className="section-label"><span className="bar"></span><h3>Workbook Checks</h3></div>
+      <Panel pad={false}>
+        <div style={{padding:'4px'}}>
+          <DataTable searchable={false}
+            columns={[
+              {key:'check',label:'Check',render:v=><span style={{fontWeight:600}}>{v}</span>},
+              {key:'status',label:'Status',render:v=><Badge>{v}</Badge>},
+              {key:'outstanding',label:'Records',num:true},
+              {key:'action',label:'Action',render:smallText},
+            ]}
+            rows={Q.checks}/>
+        </div>
+      </Panel>
+
+      <div className="section-label"><span className="bar"></span><h3>How the Dashboard Reconciled the Workbook</h3></div>
+      <Panel>
+        {Q.warnings.length
+          ? <ul className="warn-list">{Q.warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
+          : <Empty height={80}>No reconciliation issues found.</Empty>}
+      </Panel>
+    </div>
+  );
+}
+
+Object.assign(window, { ApprovalSection, ComplianceSection, DataQualitySection });
 
 </script>
 
 <script type="text/babel">
 /* =====================================================================
-   APP — top-tab navigation, page header, theme + asset filter
+   APP — top-tab navigation, page header, theme + asset + month filters
    ===================================================================== */
 const NAV = [
-  { id:'invest',     tab:'Investment',  title:'Investment Summary',     kicker:'Portfolio Performance', comp:'InvestmentSection' },
-  { id:'exec',       tab:'Executive',   title:'Executive Summary',      kicker:'Asset Overview',        comp:'ExecutiveSection' },
-  { id:'finance',    tab:'Financial',   title:'Financial Summary',      kicker:'Cash & Treasury',       comp:'FinancialSection' },
-  { id:'expense',    tab:'Expenses',    title:'Expense vs Collection',  kicker:'Cost & Recovery',       comp:'ExpenseSection' },
-  { id:'stack',      tab:'Stack Plan',  title:'Stack Plan',             kicker:'Space & Occupancy',     comp:'StackSection' },
-  { id:'tenant',     tab:'Tenants',     title:'Tenant Profile',         kicker:'Tenancy',               comp:'TenantSection' },
-  { id:'approval',   tab:'Approvals',   title:'Approval Summary',       kicker:'Statutory Approvals',   comp:'ApprovalSection' },
-  { id:'compliance', tab:'Compliance',  title:'Compliance Register',    kicker:'Compliance',            comp:'ComplianceSection' },
+  { id:'portfolio',  tab:'Portfolio',      title:'Portfolio Summary',      kicker:'Fund Performance',      comp:'PortfolioSection',   scope:['month'] },
+  { id:'asset',      tab:'Asset Overview', title:'Asset Overview',         kicker:'Location & Performance',comp:'AssetSection',       scope:['asset','month'] },
+  { id:'finance',    tab:'Financial',      title:'Financial Summary',      kicker:'Cash & Treasury',       comp:'FinancialSection',   scope:['asset','month'] },
+  { id:'expense',    tab:'Expenses',       title:'Expense vs Collection',  kicker:'Cost & Recovery',       comp:'ExpenseSection',     scope:['asset','month'] },
+  { id:'stack',      tab:'Stack Plan',     title:'Stack Plan',             kicker:'Space & Occupancy',     comp:'StackSection',       scope:['asset'] },
+  { id:'tenant',     tab:'Tenants',        title:'Tenant Profile',         kicker:'Tenancy',               comp:'TenantSection',      scope:['asset'] },
+  { id:'approval',   tab:'Approvals',      title:'Approval Summary',       kicker:'Statutory Approvals',   comp:'ApprovalSection',    scope:['asset'] },
+  { id:'compliance', tab:'Compliance',     title:'Compliance Register',    kicker:'Compliance',            comp:'ComplianceSection',  scope:['asset'] },
+  { id:'quality',    tab:'Data Quality',   title:'Data Quality',           kicker:'Workbook Checks',       comp:'DataQualitySection', scope:[] },
 ];
 
 function App(){
-  const [active,setActive] = React.useState(()=>localStorage.getItem('dash_nav')||'invest');
-  const [asset,setAsset]   = React.useState(()=>{
-    const ids = (window.DASH.assets||[]).map(a=>a.id);
-    const saved = localStorage.getItem('dash_asset');
-    return ids.includes(saved) ? saved : (ids[0]||null);
-  });
-  const [theme,setTheme]   = React.useState(()=>localStorage.getItem('dash_theme')||'light');
+  const D = window.DASH;
+  const storageGet = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+  const storageSet = (key,value) => { try { localStorage.setItem(key,value); } catch (_) {} };
+  const pick = (saved, allowed, fallback) => allowed.includes(saved) ? saved : fallback;
 
-  React.useEffect(()=>{ document.documentElement.setAttribute('data-theme',theme); localStorage.setItem('dash_theme',theme); },[theme]);
-  React.useEffect(()=>{ localStorage.setItem('dash_nav',active); window.hideTip&&window.hideTip(); window.scrollTo(0,0); },[active]);
-  React.useEffect(()=>{ localStorage.setItem('dash_asset',asset); },[asset]);
+  const [active,setActive] = React.useState(()=>pick(storageGet('dash_nav'), NAV.map(n=>n.id), NAV[0].id));
+  const [asset,setAsset]   = React.useState(()=>pick(storageGet('dash_asset'), [FUND, ...D.assets.map(a=>a.id)], FUND));
+  // The latest reported month is the default on every open, so a new build is never hidden behind a stale choice.
+  const [month,setMonth]   = React.useState(D.meta.reportMonth);
+  const [theme,setTheme]   = React.useState(()=>storageGet('dash_theme')||'light');
+
+  React.useEffect(()=>{ document.documentElement.setAttribute('data-theme',theme); storageSet('dash_theme',theme); },[theme]);
+  React.useEffect(()=>{ storageSet('dash_nav',active); window.hideTip&&window.hideTip(); window.scrollTo(0,0); },[active]);
+  React.useEffect(()=>{ storageSet('dash_asset',asset); },[asset]);
 
   const cur = NAV.find(n=>n.id===active) || NAV[0];
   const SectionComp = window[cur.comp];
-  const D = window.DASH;
+  const context = [
+    cur.scope.includes('asset') ? assetName(asset) : (cur.scope.length ? D.meta.fund : null),
+    cur.scope.includes('month') ? monthLabelOf(month) : `as of ${D.meta.asOf}`,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className="frame">
-      <TopBar assets={D.assets} asset={asset} onAsset={setAsset} theme={theme} onTheme={setTheme} month={D.meta.reportMonth} nav={NAV} active={active} onNav={setActive}/>
+      <TopBar asset={asset} onAsset={setAsset} month={month} onMonth={setMonth} theme={theme} onTheme={setTheme} nav={NAV} active={active} onNav={setActive}/>
       <div className="content">
-        <PageHead kicker={cur.kicker} title={cur.title} asset={asset} assets={D.assets} month={D.meta.reportMonth}/>
-        {SectionComp ? <SectionComp asset={asset} key={active+asset+theme}/> : <div>Section not found</div>}
+        <PageHead kicker={cur.kicker} title={cur.title} context={context}/>
+        {SectionComp ? <SectionComp asset={asset} month={month} key={active+asset+month+theme}/> : <div>Section not found</div>}
       </div>
     </div>
   );

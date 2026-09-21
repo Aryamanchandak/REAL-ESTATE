@@ -1,959 +1,353 @@
 """
-app.py — ICICI Prudential Real Estate Dashboard
-================================================
+Upload the fund workbook, press Build, download the dashboard HTML.
+
 Run:  streamlit run app.py
+
+Colours and typography come from engine/src/theme.py (brand-sourced) and
+.streamlit/config.toml (Streamlit's own chrome). Nothing is hardcoded twice.
 """
 
-import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+import sys
+import tempfile
+from pathlib import Path
 
 import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-# ── local imports ──────────────────────────────────────────────────────────────
-from theme import (
-    ORANGE, DARK_ORANGE, LIGHT_ORANGE, NAVY, DARK_NAVY, MID_NAVY,
-    WHITE, OFF_WHITE, LIGHT_GREY, MID_GREY, DARK_GREY, CHARCOAL,
-    GREEN_OK, GREEN_BG, AMBER_DUE, AMBER_BG, RED_PROGRESS, RED_BG,
-    GREY_BG, GREY_NOTDUE, PURPLE_NA, PURPLE_BG,
-    CHART_COLORS, INDUSTRY_COLORS, PLOTLY_LAYOUT, STATUS_STYLES,
-    status_badge_html,
-)
-from data.sample_data import (
-    ASSETS, MONTHS,
-    df_investment_kpis, df_investment_summary, df_rent_spread,
-    df_area_summary, df_revenue_composition,
-    df_exec_kpis, df_exec_top5_tenants, df_exec_rental_psf, df_exec_rent_trend,
-    df_tenant_top5, df_tenant_lease_expiry,
-    df_stack_plan,
-    df_expense_vs_collection, df_rent_billed_trend,
-    df_approvals,
-    df_compliance,
-    df_financial_kpis, df_financial_cashflow, df_financial_sources,
-    df_financial_usage, df_financial_collections_trend,
+ENGINE = Path(__file__).resolve().parent / "engine"
+sys.path.insert(0, str(ENGINE / "src"))
+
+from build_dashboard import build  # noqa: E402
+from theme import (  # noqa: E402
+    AMBER_BG, AMBER_DUE, CHARCOAL, DARK_GREY, DARK_NAVY, DARK_ORANGE,
+    FONT_FAMILY, FONT_IMPORT, FONT_WEIGHT, GREEN_OK, LIGHT_GREY, LIGHT_ORANGE,
+    MID_NAVY, NAVY, OFF_WHITE, ORANGE, WHITE,
 )
 
-# ── page config — MUST be first ───────────────────────────────────────────────
 st.set_page_config(
-    page_title="ICICI Pru Real Estate Dashboard",
+    page_title="Real Estate Dashboard Builder",
     page_icon="🏢",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-# ── Google Fonts + global CSS ─────────────────────────────────────────────────
-st.markdown("""
+# ── Session state — initialised unconditionally, before anything reads it ────
+for key, default in (
+    ("html", None),          # bytes of the built dashboard
+    ("label", None),         # report month label
+    ("as_of", None),         # as-of date from the workbook
+    ("fund", None),          # fund name
+    ("assets", 0),           # asset count
+    ("warnings", []),        # data-quality warnings
+    ("source", None),        # filename the result was built from
+    ("signature", None),     # (name, size) the result was built from
+):
+    st.session_state.setdefault(key, default)
+
+
+# ── Styling ──────────────────────────────────────────────────────────────────
+st.markdown(
+    f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800;900&display=swap');
+@import url('{FONT_IMPORT}');
 
-/* ── Reset / Global ── */
-*, *::before, *::after { box-sizing: border-box; }
-html, body, [data-testid="stAppViewContainer"], .stApp {
-    background-color: #F7F8FA !important;
-    font-family: 'Mulish', sans-serif !important;
-    color: #1E2235;
-}
-#MainMenu, footer, header { visibility: hidden; }
-[data-testid="stSidebar"] { display: none; }
+/* Mulish SemiBold is the only face we load. Pin every weight to it and turn
+   off synthesis so Streamlit's own 700-weight rules can't fake a bolder cut. */
+html, body, [class*="st-"], .stApp, .stApp *,
+h1, h2, h3, h4, h5, h6, p, span, div, label, td, th, button, input, strong, b {{
+    font-family: {FONT_FAMILY} !important;
+    font-weight: {FONT_WEIGHT} !important;
+    font-synthesis-weight: none;
+    font-synthesis: none;
+}}
 
-/* ── Typography ── */
-h1, h2, h3, h4 {
-    font-family: 'Mulish', sans-serif !important;
-    font-weight: 800 !important;
-    color: #1B2A5E !important;
-    letter-spacing: -0.01em;
-}
-p, span, div, label, td, th {
-    font-family: 'Mulish', sans-serif !important;
-}
+/* Streamlit draws the upload cloud, expander chevron and download glyph as
+   ligature spans in a Material icon font. The blanket rule above would catch
+   them and render the literal words "cloud_upload" / "keyboard_arrow_down",
+   so hand those elements their own font back. Glyphs aren't typography. */
+[data-testid="stIconMaterial"],
+.material-symbols-rounded,
+span[class*="material-symbols"],
+span[class*="material-icons"] {{
+    font-family: "Material Symbols Rounded", "Material Icons" !important;
+    font-weight: 400 !important;
+    font-synthesis: none;
+}}
 
-/* ── Top header bar ── */
-.dash-header {
-    background: linear-gradient(135deg, #1B2A5E 0%, #2C3E7A 100%);
-    padding: 18px 32px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.dash-header-title {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    color: #FFFFFF;
-    letter-spacing: -0.01em;
-}
-.dash-header-sub {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    color: rgba(255,255,255,0.65);
-    margin-top: 2px;
-}
-.dash-header-badge {
-    background: #F26522;
-    color: #fff;
-    font-family: 'Mulish', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 4px 14px;
-    border-radius: 20px;
-}
+.stApp {{ background: {OFF_WHITE}; }}
+#MainMenu, footer {{ visibility: hidden; }}
+[data-testid="stHeader"] {{ background: transparent; }}
+.block-container {{ padding-top: 2.2rem; padding-bottom: 4rem; max-width: 780px; }}
 
-/* ── Tab bar ── */
-[data-testid="stTabs"] [data-baseweb="tab-list"] {
-    background: #FFFFFF;
-    border-radius: 10px;
-    padding: 4px 6px;
-    gap: 2px;
-    border: 1px solid #EEF0F4;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-[data-testid="stTabs"] [data-baseweb="tab"] {
-    font-family: 'Mulish', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 13px !important;
-    color: #4A4F63 !important;
-    padding: 8px 18px !important;
-    border-radius: 7px !important;
-    border: none !important;
-    background: transparent !important;
-    transition: all 0.18s ease;
-}
-[data-testid="stTabs"] [aria-selected="true"] {
-    background: #F26522 !important;
-    color: #FFFFFF !important;
-}
-[data-testid="stTabs"] [data-baseweb="tab-highlight"] { display: none; }
-[data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
+h1, h2, h3 {{ color: {NAVY} !important; letter-spacing: -0.015em; }}
 
-/* ── KPI Cards ── */
-.kpi-card {
-    background: #FFFFFF;
-    border: 1px solid #EEF0F4;
-    border-radius: 12px;
-    padding: 18px 20px;
-    min-height: 90px;
+/* ── Masthead ── */
+.masthead {{
+    background: linear-gradient(135deg, {DARK_NAVY} 0%, {NAVY} 55%, {MID_NAVY} 100%);
+    border-radius: 14px;
+    padding: 26px 30px 24px;
+    margin-bottom: 26px;
     position: relative;
     overflow: hidden;
-}
-.kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 4px; height: 100%;
-    background: #F26522;
-    border-radius: 12px 0 0 12px;
-}
-.kpi-label {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 600;
+    animation: rise .38s ease-out both;
+}}
+.masthead::after {{
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+    background: linear-gradient(90deg, {ORANGE} 0%, {AMBER_DUE} 100%);
+}}
+.masthead-eyebrow {{
+    color: {LIGHT_ORANGE};
     font-size: 11px;
-    color: #C2C7D4;
+    letter-spacing: .16em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 6px;
-}
-.kpi-value {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 800;
-    font-size: 26px;
-    color: #1B2A5E;
-    line-height: 1.1;
-}
-.kpi-sub {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 600;
-    font-size: 11px;
-    color: #6B7280;
-    margin-top: 4px;
-}
+    opacity: .85;
+    margin-bottom: 9px;
+}}
+.masthead-title {{
+    color: {WHITE};
+    font-size: 27px;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+}}
+.masthead-sub {{ color: #B9C6D8; font-size: 13.5px; line-height: 1.55; margin: 0; }}
 
-/* ── Section cards ── */
-.section-card {
-    background: #FFFFFF;
-    border: 1px solid #EEF0F4;
+/* ── Step labels ── */
+.step {{
+    display: flex; align-items: center; gap: 10px;
+    margin: 26px 0 10px;
+    color: {NAVY}; font-size: 15px;
+}}
+.step-num {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 23px; height: 23px; border-radius: 50%;
+    background: {LIGHT_ORANGE}; color: {DARK_ORANGE};
+    font-size: 12px; flex: 0 0 auto;
+}}
+.step-hint {{
+    color: {DARK_GREY}; font-size: 12.5px;
+    margin: -4px 0 10px 33px; line-height: 1.5;
+}}
+
+/* ── Result card ── */
+.result {{
+    background: {WHITE};
+    border: 1px solid {LIGHT_GREY};
+    border-left: 4px solid {GREEN_OK};
     border-radius: 12px;
-    padding: 20px 22px;
-    margin-bottom: 16px;
-}
-.section-title {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 800;
-    font-size: 14px;
-    color: #1B2A5E;
-    margin-bottom: 14px;
-    letter-spacing: -0.01em;
-}
+    padding: 18px 22px;
+    margin: 6px 0 18px;
+    animation: rise .32s ease-out both;
+}}
+.result-head {{ color: {GREEN_OK}; font-size: 13px; letter-spacing: .04em;
+                text-transform: uppercase; margin-bottom: 12px; }}
+.result-grid {{ display: flex; flex-wrap: wrap; gap: 10px 34px; }}
+.result-k {{ color: {DARK_GREY}; font-size: 10.5px; letter-spacing: .12em;
+             text-transform: uppercase; margin-bottom: 3px; }}
+.result-v {{ color: {CHARCOAL}; font-size: 17px; letter-spacing: -0.01em; }}
 
-/* ── Status chip row ── */
-.chip-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.chip {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.chip-count {
-    background: rgba(255,255,255,0.35);
+/* ── Stale-result notice ── */
+.stale {{
+    background: {AMBER_BG};
+    border: 1px solid {AMBER_DUE};
     border-radius: 10px;
-    padding: 1px 7px;
-    font-size: 11px;
-    font-weight: 800;
-}
+    padding: 11px 15px;
+    margin-bottom: 14px;
+    color: {DARK_ORANGE};
+    font-size: 13px; line-height: 1.5;
+}}
 
-/* ── Table styling ── */
-.dash-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'Mulish', sans-serif;
-    font-size: 13px;
-}
-.dash-table th {
-    background: #1B2A5E;
-    color: #FFFFFF;
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 10px 14px;
-    text-align: left;
-    white-space: nowrap;
-}
-.dash-table td {
-    padding: 9px 14px;
-    color: #1E2235;
-    font-weight: 600;
-    border-bottom: 1px solid #EEF0F4;
-    vertical-align: middle;
-}
-.dash-table tr:last-child td { border-bottom: none; }
-.dash-table tr:hover td { background: #F7F8FA; }
-.dash-table tr.total-row td {
-    background: #F0F2F8;
-    font-weight: 800;
-    color: #1B2A5E;
-}
+/* ── Buttons ── */
+.stButton > button, .stDownloadButton > button {{
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}}
+.stButton > button[kind="primary"] {{
+    background: {ORANGE}; border-color: {ORANGE}; color: {WHITE};
+    box-shadow: 0 1px 2px rgba(19,51,89,.14);
+}}
+.stButton > button[kind="primary"]:hover:not(:disabled) {{
+    background: {DARK_ORANGE}; border-color: {DARK_ORANGE};
+    transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220,96,9,.28);
+}}
+.stDownloadButton > button:hover {{
+    transform: translateY(-1px); box-shadow: 0 4px 12px rgba(19,51,89,.16);
+}}
 
-/* ── Flow bar (Financial) ── */
-.flow-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #FFFFFF;
-    border: 1px solid #EEF0F4;
-    border-radius: 12px;
-    padding: 18px 24px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.flow-item { text-align: center; min-width: 100px; }
-.flow-item-label {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 600;
-    font-size: 11px;
-    color: #C2C7D4;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-}
-.flow-item-value {
-    font-family: 'Mulish', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    color: #1B2A5E;
-}
-.flow-op {
-    font-size: 26px;
-    font-weight: 800;
-    color: #C2C7D4;
-}
+/* ── Dropzone ── */
+[data-testid="stFileUploaderDropzone"] {{
+    background: {WHITE};
+    border: 1.5px dashed {LIGHT_GREY};
+    transition: border-color .18s ease, background .18s ease;
+}}
+[data-testid="stFileUploaderDropzone"]:hover {{
+    border-color: {ORANGE}; background: #FFFCF9;
+}}
 
-/* ── WALE badge ── */
-.wale-badge {
-    background: linear-gradient(135deg, #FDE9D8, #FECBA1);
-    border: 1px solid #F26522;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-family: 'Mulish', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    color: #C84E0E;
-    display: inline-block;
-}
+/* ── Footer ── */
+.foot {{
+    margin-top: 38px; padding-top: 14px;
+    border-top: 1px solid {LIGHT_GREY};
+    color: {DARK_GREY}; font-size: 11.5px; line-height: 1.6;
+}}
 
-/* ── Plotly chart containers ── */
-[data-testid="stPlotlyChart"] { border-radius: 10px; overflow: hidden; }
-
-/* ── Metric overrides ── */
-[data-testid="metric-container"] {
-    background: transparent !important;
-    border: none !important;
-}
-[data-testid="metric-container"] label {
-    font-family: 'Mulish', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 12px !important;
-    color: #C2C7D4 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-}
-[data-testid="metric-container"] [data-testid="metric-value"] {
-    font-family: 'Mulish', sans-serif !important;
-    font-weight: 800 !important;
-    color: #1B2A5E !important;
-}
-
-/* ── Selectbox ── */
-[data-testid="stSelectbox"] label {
-    font-family: 'Mulish', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 12px !important;
-    color: #4A4F63 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-/* ── Divider ── */
-hr { border: none; border-top: 1px solid #EEF0F4; margin: 12px 0; }
+@keyframes rise {{
+    from {{ opacity: 0; transform: translateY(7px); }}
+    to   {{ opacity: 1; transform: none; }}
+}}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# ── session state ──────────────────────────────────────────────────────────────
-if "selected_asset" not in st.session_state:
-    st.session_state.selected_asset = "All"
-if "selected_month" not in st.session_state:
-    st.session_state.selected_month = "Jan-24"
+st.markdown(
+    """
+<div class="masthead">
+  <div class="masthead-eyebrow">ICICI Prudential · Real Estate</div>
+  <div class="masthead-title">Fund Dashboard Builder</div>
+  <p class="masthead-sub">Upload the monthly fund workbook and get back a single,
+  self-contained dashboard file you can email or open offline.</p>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
+# ── Step 1 — upload ──────────────────────────────────────────────────────────
+st.markdown(
+    '<div class="step"><span class="step-num">1</span>Choose the fund workbook</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="step-hint">The 9-asset .xlsx — the reader expects the '
+    '<code>1_ASSET_MASTER</code> / <code>2_MONTHLY_INPUT</code> sheet layout.</div>',
+    unsafe_allow_html=True,
+)
+uploaded = st.file_uploader("Excel workbook", type=["xlsx"], label_visibility="collapsed")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# HELPER UTILITIES
-# ══════════════════════════════════════════════════════════════════════════════
+signature = (uploaded.name, uploaded.size) if uploaded is not None else None
 
-def kpi_card(label: str, value: str, sub: str = "") -> str:
-    sub_html = f'<div class="kpi-sub">{sub}</div>' if sub else ""
-    return f"""
-    <div class="kpi-card">
-      <div class="kpi-label">{label}</div>
-      <div class="kpi-value">{value}</div>
-      {sub_html}
-    </div>"""
+# A result on screen must always match the workbook currently in the uploader —
+# otherwise the download button quietly hands over the *previous* file. Only
+# warn while a file is actually loaded: with the uploader cleared, Build is
+# disabled and telling someone to press it would be a dead end.
+stale = (
+    st.session_state["html"] is not None
+    and uploaded is not None
+    and signature != st.session_state["signature"]
+)
 
+# ── Step 2 — build ───────────────────────────────────────────────────────────
+st.markdown(
+    '<div class="step"><span class="step-num">2</span>Build the dashboard</div>',
+    unsafe_allow_html=True,
+)
 
-def section_card_open(title: str = "") -> str:
-    title_html = f'<div class="section-title">{title}</div>' if title else ""
-    return f'<div class="section-card">{title_html}'
+run = st.button(
+    "Build dashboard",
+    type="primary",
+    disabled=uploaded is None,
+    use_container_width=True,
+)
 
+if uploaded is None:
+    st.markdown(
+        '<div class="step-hint">Waiting for a workbook.</div>',
+        unsafe_allow_html=True,
+    )
 
-def section_card_close() -> str:
-    return "</div>"
+if run and uploaded is not None:
+    with st.spinner("Reading the workbook and building the dashboard…"):
+        with tempfile.TemporaryDirectory() as tmp:
+            excel_path = Path(tmp) / "input.xlsx"
+            output_path = Path(tmp) / "dashboard.html"
+            excel_path.write_bytes(uploaded.getvalue())
+            try:
+                data = build(
+                    excel_path,
+                    ENGINE / "templates" / "dashboard.template.html",
+                    output_path,
+                )
+            except Exception as exc:
+                # Drop any earlier result so a failure can't leave a stale
+                # download button sitting underneath the error.
+                st.session_state.update(
+                    html=None, label=None, as_of=None, fund=None,
+                    assets=0, warnings=[], source=None, signature=None,
+                )
+                st.error(f"Could not build the dashboard: {exc}")
+                st.stop()
 
+            st.session_state.update(
+                html=output_path.read_bytes(),
+                label=data["meta"]["reportMonthLabel"],
+                as_of=data["meta"].get("asOf"),
+                fund=data["meta"].get("fund"),
+                assets=len(data.get("assets", [])),
+                warnings=data["dataQuality"]["warnings"],
+                source=uploaded.name,
+                signature=signature,
+            )
+    stale = False
 
-def chip_row_html(chips: list[dict]) -> str:
-    """chips: [{"label":"In Progress","count":1,"bg":"#FDEAEA","color":"#D0021B"}]"""
-    items = ""
-    for c in chips:
-        count = f'<span class="chip-count">{c["count"]}</span>' if "count" in c else ""
-        items += (
-            f'<span class="chip" style="background:{c["bg"]};color:{c["color"]};'
-            f'border:1px solid {c["color"]};">'
-            f'{c["label"]}{count}</span>'
+# ── Step 3 — result ──────────────────────────────────────────────────────────
+if st.session_state["html"] is not None:
+    st.markdown(
+        '<div class="step"><span class="step-num">3</span>Download</div>',
+        unsafe_allow_html=True,
+    )
+
+    if stale:
+        st.markdown(
+            f'<div class="stale">The workbook in the uploader has changed. '
+            f'The result below is still from <b>{st.session_state["source"]}</b> — '
+            f'press <b>Build dashboard</b> to refresh it.</div>',
+            unsafe_allow_html=True,
         )
-    return f'<div class="chip-row">{items}</div>'
 
-
-def apply_plotly_theme(fig: go.Figure, title: str = "") -> go.Figure:
-    layout = dict(PLOTLY_LAYOUT)
-    if title:
-        layout["title"] = dict(text=title, font=dict(
-            family="Mulish, sans-serif", size=13, color=NAVY), x=0, xanchor="left")
-    fig.update_layout(**layout)
-    return fig
-
-
-def render_status_table(df: pd.DataFrame, status_col: str, columns: list[str], col_labels: list[str]):
-    """Render a HTML table with coloured status badges."""
-    thead = "".join(f"<th>{l}</th>" for l in col_labels)
-    rows = ""
-    for _, row in df.iterrows():
-        cells = ""
-        for col in columns:
-            if col == status_col:
-                cells += f"<td>{status_badge_html(row[col])}</td>"
-            else:
-                cells += f"<td>{row[col]}</td>"
-        rows += f"<tr>{cells}</tr>"
-    html = f"""
-    <div style="overflow-x:auto;">
-    <table class="dash-table">
-      <thead><tr>{thead}</tr></thead>
-      <tbody>{rows}</tbody>
-    </table>
-    </div>"""
-    st.markdown(html, unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# HEADER
-# ══════════════════════════════════════════════════════════════════════════════
-
-st.markdown("""
-<div class="dash-header">
-  <div>
-    <div class="dash-header-title">🏢 Real Estate Asset Dashboard</div>
-    <div class="dash-header-sub">ICICI Prudential Asset Management · Commercial Portfolio</div>
+    warnings = st.session_state["warnings"]
+    st.markdown(
+        f"""
+<div class="result">
+  <div class="result-head">Dashboard ready</div>
+  <div class="result-grid">
+    <div><div class="result-k">Fund</div>
+         <div class="result-v">{st.session_state["fund"] or "—"}</div></div>
+    <div><div class="result-k">Report month</div>
+         <div class="result-v">{st.session_state["label"]}</div></div>
+    <div><div class="result-k">As of</div>
+         <div class="result-v">{st.session_state["as_of"] or "—"}</div></div>
+    <div><div class="result-k">Assets</div>
+         <div class="result-v">{st.session_state["assets"]}</div></div>
+    <div><div class="result-k">Warnings</div>
+         <div class="result-v">{len(warnings)}</div></div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
-# Global filters row
-f1, f2, f3 = st.columns([1, 1, 6])
-with f1:
-    selected_asset = st.selectbox("Asset", ASSETS, key="asset_filter")
-with f2:
-    selected_month = st.selectbox("Month", MONTHS, index=len(MONTHS)-1, key="month_filter")
+    month_slug = (st.session_state["label"] or "dashboard").replace(" ", "_")
+    st.download_button(
+        f"Download dashboard — {st.session_state['label']}",
+        st.session_state["html"],
+        file_name=f"dashboard_{month_slug}.html",
+        mime="text/html",
+        use_container_width=True,
+    )
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TABS
-# ══════════════════════════════════════════════════════════════════════════════
-
-(tab_inv, tab_exec, tab_tenant, tab_stack,
- tab_exp, tab_approvals, tab_compliance, tab_fin) = st.tabs([
-    "📊 Investment Summary",
-    "📋 Executive Summary",
-    "👥 Tenant Profile",
-    "🏗️ Stacking Plan",
-    "💰 Expense vs Collection",
-    "✅ Approvals",
-    "📑 Compliance Register",
-    "🏦 Financial Summary",
-])
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — INVESTMENT SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_inv:
-    kpis = df_investment_kpis.iloc[0]
-
-    # KPI row
-    c1, c2, c3, c4, c5 = st.columns(5)
-    for col, label, val, sub in [
-        (c1, "Monthly Rental",    f"₹{kpis['monthly_rental_amount_cr']} Cr", ""),
-        (c2, "CAM Charges",       f"₹{kpis['cam_charges_psf']}/sf",          "Per sq ft"),
-        (c3, "Occupancy",         f"{kpis['occupied_pct']}%",                "Overall Portfolio"),
-        (c4, "Gross Billing",     f"₹{kpis['gross_billing_cr']} Cr",         "Incl. Taxes"),
-        (c5, "Collections",       f"₹{kpis['collections_cr']} Cr",           "Incl. Taxes"),
-    ]:
-        with col:
-            st.markdown(kpi_card(label, val, sub), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Investment summary table
-    st.markdown('<div class="section-card"><div class="section-title">Investment Summary — Asset Breakdown</div>', unsafe_allow_html=True)
-    tbl = df_investment_summary.copy()
-    thead = "<tr>" + "".join(f"<th>{h}</th>" for h in [
-        "Asset", "Leasable Area (Msft)", "Leased Area (Msft)",
-        "Vacant Area (Msft)", "Occupancy %", "Monthly Rent (Cr)"]) + "</tr>"
-    rows = ""
-    for _, row in tbl.iterrows():
-        tr_class = ' class="total-row"' if row["asset"] == "Total" else ""
-        rows += (
-            f"<tr{tr_class}>"
-            f"<td><b>{row['asset']}</b></td>"
-            f"<td>{row['leasable_area_msft']:.2f}</td>"
-            f"<td>{row['leased_area_msft']:.2f}</td>"
-            f"<td>{row['vacant_area_msft']:.2f}</td>"
-            f"<td>{row['occupancy_pct']:.1f}%</td>"
-            f"<td>₹{row['monthly_rent_cr']:.1f}</td>"
-            "</tr>"
+    if warnings:
+        with st.expander(f"{len(warnings)} data warning(s) from this workbook"):
+            for warning in warnings:
+                st.markdown(f"- {warning}")
+    else:
+        st.markdown(
+            '<div class="step-hint" style="margin-left:0">No data-quality '
+            'warnings were raised.</div>',
+            unsafe_allow_html=True,
         )
-    st.markdown(f'<div style="overflow-x:auto;"><table class="dash-table"><thead>{thead}</thead><tbody>{rows}</tbody></table></div>',
-                unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    col_left, col_mid, col_right = st.columns([1, 1, 1])
-
-    # Rent spread bar
-    with col_left:
-        st.markdown('<div class="section-card"><div class="section-title">Rent Spread Rate PSF Area</div>', unsafe_allow_html=True)
-        if not df_rent_spread.empty:
-            fig = px.bar(df_rent_spread, y="band", x="area_msft", orientation="h",
-                         color_discrete_sequence=[ORANGE])
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "xaxis_title": "Area (Msft)", "yaxis_title": "",
-                "margin": dict(l=0, r=0, t=8, b=0), "height": 220})
-            fig.update_traces(marker_cornerradius=3)
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Area summary bars
-    with col_mid:
-        st.markdown('<div class="section-card"><div class="section-title">Area Summary</div>', unsafe_allow_html=True)
-        if not df_area_summary.empty:
-            colors = [NAVY, ORANGE, LIGHT_GREY]
-            fig = px.bar(df_area_summary, y="category", x="area_msft", orientation="h",
-                         color="category",
-                         color_discrete_map={
-                             "Leasable Area": NAVY,
-                             "Leased Area": ORANGE,
-                             "Vacant Area": "#C2C7D4"})
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "showlegend": False, "xaxis_title": "Area (Msft)", "yaxis_title": "",
-                "margin": dict(l=0, r=0, t=8, b=0), "height": 220})
-            fig.update_traces(marker_cornerradius=3)
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Revenue composition donut
-    with col_right:
-        st.markdown('<div class="section-card"><div class="section-title">Revenue Composition (Excl. Taxes)</div>', unsafe_allow_html=True)
-        if not df_revenue_composition.empty:
-            fig = px.pie(df_revenue_composition, names="component", values="amount_cr",
-                         color_discrete_sequence=CHART_COLORS, hole=0.55)
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "margin": dict(l=0, r=0, t=8, b=0), "height": 220,
-                "legend": dict(orientation="v", font=dict(size=11))})
-            fig.update_traces(textinfo="percent", textfont_size=11)
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — EXECUTIVE SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_exec:
-    ex = df_exec_kpis.iloc[0]
-
-    # KPI row
-    c1, c2, c3, c4, c5 = st.columns(5)
-    for col, label, val, sub in [
-        (c1, "WALE",             f"{ex['wale_yrs']} Yrs",           "Weighted Avg. Lease Expiry"),
-        (c2, "Rent to be Billed",f"₹{ex['rent_to_be_billed_cr']} Cr","Without Tax"),
-        (c3, "Actual Billed",    f"₹{ex['actual_billed_cr']} Cr",   "Without Tax"),
-        (c4, "Gross Billing",    f"₹{ex['gross_billing_cr']} Cr",    "Incl. Tax"),
-        (c5, "Collections",      f"₹{ex['collections_cr']} Cr",     "Incl. Tax"),
-    ]:
-        with col:
-            st.markdown(kpi_card(label, val, sub), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Area donut + top-5 + PSF chart
-    col_a, col_b, col_c = st.columns([1, 1.2, 1.5])
-
-    # Status-wise area donut
-    with col_a:
-        st.markdown('<div class="section-card"><div class="section-title">Status-wise Area</div>', unsafe_allow_html=True)
-        area_data = pd.DataFrame([
-            {"status": "Leased", "area_msft": ex["leased_area_msft"]},
-            {"status": "Vacant", "area_msft": ex["vacant_area_msft"]},
-        ])
-        fig = px.pie(area_data, names="status", values="area_msft",
-                     color_discrete_map={"Leased": NAVY, "Vacant": "#E8EAED"}, hole=0.6)
-        fig.update_layout(**{**PLOTLY_LAYOUT,
-            "margin": dict(l=0, r=0, t=8, b=0), "height": 200,
-            "annotations": [dict(text=f"{ex['total_area_msft']}M<br>Total", x=0.5, y=0.5,
-                                 showarrow=False, font=dict(size=13, color=NAVY, family="Mulish"),
-                                 xref="paper", yref="paper")]})
-        st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Top 5 tenants
-    with col_b:
-        st.markdown('<div class="section-card"><div class="section-title">Top 5 Tenants by Monthly Rent</div>', unsafe_allow_html=True)
-        if not df_exec_top5_tenants.empty:
-            fig = px.bar(df_exec_top5_tenants.sort_values("monthly_rent_cr"),
-                         y="tenant", x="monthly_rent_cr", orientation="h",
-                         color_discrete_sequence=[ORANGE],
-                         text="monthly_rent_cr")
-            fig.update_traces(texttemplate="₹%{text:.1f}Cr", textposition="outside",
-                              marker_cornerradius=3)
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "xaxis_title": "₹ Cr", "yaxis_title": "",
-                "margin": dict(l=0, r=40, t=8, b=0), "height": 200})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Current & future rental PSF
-    with col_c:
-        st.markdown('<div class="section-card"><div class="section-title">Current & Future Avg Rental PSF</div>', unsafe_allow_html=True)
-        if not df_exec_rental_psf.empty:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df_exec_rental_psf["period"], y=df_exec_rental_psf["rent_to_be_billed_psf"],
-                name="Rent to be Billed", line=dict(color=ORANGE, width=2.5),
-                fill="tonexty", fillcolor="rgba(242,101,34,0.08)"))
-            fig.add_trace(go.Scatter(
-                x=df_exec_rental_psf["period"], y=df_exec_rental_psf["actual_billed_psf"],
-                name="Actual Billed", line=dict(color=NAVY, width=2.5, dash="dot")))
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "yaxis_title": "₹/sf", "height": 200,
-                "margin": dict(l=0, r=0, t=8, b=0)})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # 6-month trend bar
-    st.markdown('<div class="section-card"><div class="section-title">Rent to be Billed vs Actual Billed — 6 Month Trend (₹ Cr, Without Tax)</div>', unsafe_allow_html=True)
-    if not df_exec_rent_trend.empty:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=df_exec_rent_trend["month"], y=df_exec_rent_trend["rent_to_be_billed_cr"],
-                             name="Rent to be Billed", marker_color=NAVY, marker_cornerradius=4))
-        fig.add_trace(go.Bar(x=df_exec_rent_trend["month"], y=df_exec_rent_trend["actual_billed_cr"],
-                             name="Actual Billed", marker_color=ORANGE, marker_cornerradius=4))
-        fig.update_layout(**{**PLOTLY_LAYOUT, "barmode": "group", "height": 240,
-            "yaxis_title": "₹ Cr", "margin": dict(l=0, r=0, t=8, b=0)})
-        st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — TENANT PROFILE
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_tenant:
-    toggle_col, _ = st.columns([1, 4])
-    with toggle_col:
-        metric_toggle = st.radio("View by", ["Monthly Rent", "Revenue PSF"],
-                                 horizontal=True, label_visibility="collapsed")
-
-    col_l, col_r = st.columns([1, 1.6])
-
-    with col_l:
-        st.markdown('<div class="section-card"><div class="section-title">Top 5 Tenants</div>', unsafe_allow_html=True)
-        if not df_tenant_top5.empty:
-            y_col = "monthly_rent_cr" if metric_toggle == "Monthly Rent" else "revenue_psf"
-            label = "₹ Cr" if metric_toggle == "Monthly Rent" else "₹/sf"
-            fig = px.bar(df_tenant_top5.sort_values(y_col),
-                         y="tenant", x=y_col, orientation="h",
-                         color_discrete_sequence=[ORANGE], text=y_col)
-            prefix = "₹" if metric_toggle == "Monthly Rent" else "₹"
-            suffix = " Cr" if metric_toggle == "Monthly Rent" else "/sf"
-            fig.update_traces(texttemplate=f"{prefix}%{{text:.1f}}{suffix}",
-                              textposition="outside", marker_cornerradius=3)
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "xaxis_title": label, "yaxis_title": "",
-                "margin": dict(l=0, r=50, t=8, b=0), "height": 260})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_r:
-        st.markdown('<div class="section-card"><div class="section-title">Upcoming Lease Expiry (by Quarter)</div>', unsafe_allow_html=True)
-        if not df_tenant_lease_expiry.empty:
-            fig = px.bar(df_tenant_lease_expiry, x="quarter", y="area_sft",
-                         color="tenant_group",
-                         color_discrete_sequence=CHART_COLORS,
-                         text="area_sft")
-            fig.update_traces(texttemplate="%{text:,}", textposition="outside",
-                              marker_cornerradius=3)
-            fig.update_layout(**{**PLOTLY_LAYOUT,
-                "xaxis_title": "Lease Expiry Quarter", "yaxis_title": "Area (sft)",
-                "barmode": "group", "height": 280,
-                "margin": dict(l=0, r=0, t=8, b=0)})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 4 — STACKING PLAN
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_stack:
-    st.markdown('<div class="section-card"><div class="section-title">Stack Plan — Floor by Floor</div>', unsafe_allow_html=True)
-
-    if not df_stack_plan.empty:
-        floors = sorted(df_stack_plan["floor"].unique(), reverse=True)
-        fig = go.Figure()
-
-        for industry, color in INDUSTRY_COLORS.items():
-            ind_df = df_stack_plan[df_stack_plan["industry"] == industry]
-            for floor in floors:
-                floor_ind = ind_df[ind_df["floor"] == floor]
-                for _, row in floor_ind.iterrows():
-                    fig.add_trace(go.Bar(
-                        y=[f"Floor {row['floor']}"],
-                        x=[row["area_ksft"]],
-                        orientation="h",
-                        name=industry,
-                        marker_color=color,
-                        marker_line_color=WHITE,
-                        marker_line_width=1.5,
-                        text=f"{row['tenant']}<br>{row['area_ksft']}K",
-                        textposition="inside",
-                        insidetextanchor="middle",
-                        textfont=dict(size=10, color=WHITE if industry != "Vacant" else DARK_GREY,
-                                      family="Mulish"),
-                        hovertemplate=(f"<b>{row['tenant']}</b><br>"
-                                       f"Floor {row['floor']}<br>"
-                                       f"Area: {row['area_ksft']}K sft<br>"
-                                       f"Industry: {industry}<extra></extra>"),
-                        showlegend=False,
-                        legendgroup=industry,
-                    ))
-
-        # Legend entries (one per industry)
-        for industry, color in INDUSTRY_COLORS.items():
-            fig.add_trace(go.Bar(
-                y=[None], x=[None], orientation="h",
-                name=industry,
-                marker_color=color,
-                showlegend=True,
-                legendgroup=industry,
-            ))
-
-        fig.update_layout(**{**PLOTLY_LAYOUT,
-            "barmode": "stack",
-            "height": 380,
-            "xaxis_title": "Area (K sft)",
-            "yaxis_title": "",
-            "xaxis": dict(gridcolor=LIGHT_GREY),
-            "yaxis": dict(categoryorder="array",
-                          categoryarray=[f"Floor {f}" for f in sorted(floors)]),
-            "legend": dict(orientation="h", yanchor="bottom", y=-0.22,
-                           xanchor="left", x=0,
-                           font=dict(size=12, family="Mulish")),
-            "margin": dict(l=0, r=0, t=8, b=60),
-        })
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 5 — EXPENSE VS COLLECTION
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_exp:
-    col_l, col_r = st.columns(2)
-
-    with col_l:
-        st.markdown('<div class="section-card"><div class="section-title">Expense vs Collection (₹ Cr)</div>', unsafe_allow_html=True)
-        if not df_expense_vs_collection.empty:
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=df_expense_vs_collection["month"],
-                                 y=df_expense_vs_collection["collections_cr"],
-                                 name="Collections", marker_color=ORANGE, marker_cornerradius=3))
-            fig.add_trace(go.Bar(x=df_expense_vs_collection["month"],
-                                 y=df_expense_vs_collection["expense_cam_cr"],
-                                 name="Expense (CAM)", marker_color="#C2C7D4", marker_cornerradius=3))
-            fig.add_trace(go.Bar(x=df_expense_vs_collection["month"],
-                                 y=df_expense_vs_collection["expense_debt_cr"],
-                                 name="Expense (Debt)", marker_color=NAVY, marker_cornerradius=3))
-            fig.add_trace(go.Bar(x=df_expense_vs_collection["month"],
-                                 y=df_expense_vs_collection["expense_opex_cr"],
-                                 name="Expense (OPEX)", marker_color="#F5A623", marker_cornerradius=3))
-            fig.update_layout(**{**PLOTLY_LAYOUT, "barmode": "group",
-                "yaxis_title": "₹ Cr", "height": 300,
-                "margin": dict(l=0, r=0, t=8, b=0)})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_r:
-        st.markdown('<div class="section-card"><div class="section-title">Rent to be Billed vs Actual Billed (₹ Cr, Without Tax)</div>', unsafe_allow_html=True)
-        if not df_rent_billed_trend.empty:
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=df_rent_billed_trend["month"],
-                                 y=df_rent_billed_trend["rent_to_be_billed_cr"],
-                                 name="Rent to be Billed", marker_color=NAVY, marker_cornerradius=3))
-            fig.add_trace(go.Bar(x=df_rent_billed_trend["month"],
-                                 y=df_rent_billed_trend["actual_billed_cr"],
-                                 name="Actual Billed", marker_color=ORANGE, marker_cornerradius=3))
-            fig.update_layout(**{**PLOTLY_LAYOUT, "barmode": "group",
-                "yaxis_title": "₹ Cr", "height": 300,
-                "margin": dict(l=0, r=0, t=8, b=0)})
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 6 — APPROVALS
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_approvals:
-    complied_count  = int((df_approvals["status"] == "Complied").sum())
-    revision_count  = int((df_approvals["status"] == "Revision Required").sum())
-
-    st.markdown(chip_row_html([
-        {"label": "Complied",          "count": complied_count,
-         "bg": GREEN_BG,  "color": GREEN_OK},
-        {"label": "Revision Required", "count": revision_count,
-         "bg": AMBER_BG, "color": DARK_ORANGE},
-    ]), unsafe_allow_html=True)
-
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    render_status_table(
-        df_approvals, "status",
-        ["description", "issuing_authority", "issue_date", "validity",
-         "expected_timelines", "associated_risk", "status"],
-        ["Approval Description", "Issuing Authority", "Issue Date", "Validity",
-         "Expected Timelines", "Associated Risk", "Status"],
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 7 — COMPLIANCE REGISTER
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_compliance:
-    in_progress_count = int((df_compliance["rag_status"] == "In Progress").sum())
-    due_soon_count    = int((df_compliance["rag_status"] == "Due Soon").sum())
-    ok_count          = int((df_compliance["rag_status"] == "OK").sum())
-
-    st.markdown(chip_row_html([
-        {"label": "In Progress", "count": in_progress_count,
-         "bg": RED_BG,    "color": RED_PROGRESS},
-        {"label": "Due Soon",    "count": due_soon_count,
-         "bg": AMBER_BG,  "color": DARK_ORANGE},
-        {"label": "OK",          "count": ok_count,
-         "bg": GREEN_BG,  "color": GREEN_OK},
-    ]), unsafe_allow_html=True)
-
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    render_status_table(
-        df_compliance, "rag_status",
-        ["item", "category", "frequency", "due_date", "filed_done",
-         "responsible", "consequence", "rag_status"],
-        ["Compliance Item", "Category", "Frequency", "Due Date", "Filed / Done",
-         "Responsible", "Consequence of Non-Compliance", "RAG Status"],
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 8 — FINANCIAL SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-
-with tab_fin:
-    fin = df_financial_kpis.iloc[0]
-
-    # Cash flow bridge bar
-    st.markdown(f"""
-    <div class="flow-bar">
-      <div class="flow-item">
-        <div class="flow-item-label">Opening Balance</div>
-        <div class="flow-item-value" style="color:{NAVY};">₹{fin['opening_balance_cr']} Cr</div>
-      </div>
-      <div class="flow-op" style="color:{GREEN_OK};">+</div>
-      <div class="flow-item">
-        <div class="flow-item-label">Total Inflow</div>
-        <div class="flow-item-value" style="color:{GREEN_OK};">₹{fin['total_inflow_cr']} Cr</div>
-      </div>
-      <div class="flow-op" style="color:{RED_PROGRESS};">−</div>
-      <div class="flow-item">
-        <div class="flow-item-label">Total Outflow</div>
-        <div class="flow-item-value" style="color:{RED_PROGRESS};">₹{fin['total_outflow_cr']} Cr</div>
-      </div>
-      <div class="flow-op">=</div>
-      <div class="flow-item">
-        <div class="flow-item-label">Closing Balance</div>
-        <div class="flow-item-value" style="color:{ORANGE};">₹{fin['closing_balance_cr']} Cr</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_l, col_r = st.columns([1.8, 1])
-
-    # Cashflow table
-    with col_l:
-        st.markdown('<div class="section-card"><div class="section-title">Cash Flow Details — By Bank Account</div>', unsafe_allow_html=True)
-        if not df_financial_cashflow.empty:
-            bank_cols = [c for c in df_financial_cashflow.columns if c.startswith("PNB")]
-            headers = ["Tag"] + bank_cols + ["Grand Total"]
-            thead = "".join(f"<th>{h}</th>" for h in headers)
-            rows_html = ""
-            for _, row in df_financial_cashflow.iterrows():
-                tr_class = ' class="total-row"' if row["tag"] in ("Opening Balance", "Closing Balance") else ""
-                cells = f"<td><b>{row['tag']}</b></td>"
-                for bc in bank_cols:
-                    val = row[bc]
-                    color = RED_PROGRESS if val < 0 else (GREEN_OK if val > 0 else GREY_NOTDUE)
-                    cells += f'<td style="color:{color};font-weight:700;">₹{val:.1f}</td>'
-                gt = row["grand_total"]
-                gt_color = RED_PROGRESS if gt < 0 else (GREEN_OK if gt > 0 else GREY_NOTDUE)
-                cells += f'<td style="color:{gt_color};font-weight:800;">₹{gt:.1f}</td>'
-                rows_html += f"<tr{tr_class}>{cells}</tr>"
-            st.markdown(
-                f'<div style="overflow-x:auto;">'
-                f'<table class="dash-table"><thead><tr>{thead}</tr></thead><tbody>{rows_html}</tbody></table>'
-                f'</div>',
-                unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Sources & usage
-    with col_r:
-        st.markdown('<div class="section-card"><div class="section-title">Sources & Usage Summary</div>', unsafe_allow_html=True)
-
-        if not df_financial_sources.empty:
-            st.markdown(f'<div style="font-family:Mulish;font-weight:800;font-size:12px;color:{NAVY};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Sources of Funds</div>', unsafe_allow_html=True)
-            for _, row in df_financial_sources.iterrows():
-                st.markdown(
-                    f'<div style="display:flex;justify-content:space-between;'
-                    f'padding:6px 0;border-bottom:1px solid {LIGHT_GREY};'
-                    f'font-family:Mulish;font-size:13px;font-weight:600;">'
-                    f'<span style="color:{CHARCOAL};">{row["source"]}</span>'
-                    f'<span style="color:{GREEN_OK};font-weight:800;">₹{row["amount_cr"]:.1f} Cr</span>'
-                    f'</div>',
-                    unsafe_allow_html=True)
-            total_sources = df_financial_sources["amount_cr"].sum()
-            st.markdown(
-                f'<div style="display:flex;justify-content:space-between;padding:8px 0;'
-                f'font-family:Mulish;font-size:13px;font-weight:800;color:{NAVY};">'
-                f'<span>Grand Total</span><span>₹{total_sources:.1f} Cr</span></div>',
-                unsafe_allow_html=True)
-
-        st.markdown("<hr>", unsafe_allow_html=True)
-
-        if not df_financial_usage.empty:
-            st.markdown(f'<div style="font-family:Mulish;font-weight:800;font-size:12px;color:{NAVY};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Usage of Funds</div>', unsafe_allow_html=True)
-            for _, row in df_financial_usage.iterrows():
-                val = row["amount_cr"]
-                color = RED_PROGRESS if val > 0 else GREY_NOTDUE
-                st.markdown(
-                    f'<div style="display:flex;justify-content:space-between;'
-                    f'padding:6px 0;border-bottom:1px solid {LIGHT_GREY};'
-                    f'font-family:Mulish;font-size:13px;font-weight:600;">'
-                    f'<span style="color:{CHARCOAL};">{row["usage"]}</span>'
-                    f'<span style="color:{color};font-weight:800;">−₹{val:.1f} Cr</span>'
-                    f'</div>',
-                    unsafe_allow_html=True)
-            total_usage = df_financial_usage["amount_cr"].sum()
-            st.markdown(
-                f'<div style="display:flex;justify-content:space-between;padding:8px 0;'
-                f'font-family:Mulish;font-size:13px;font-weight:800;color:{RED_PROGRESS};">'
-                f'<span>Grand Total</span><span>−₹{total_usage:.1f} Cr</span></div>',
-                unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Business plan vs actual
-    st.markdown('<div class="section-card"><div class="section-title">Business Plan vs Actual Collections (₹ Cr)</div>', unsafe_allow_html=True)
-    if not df_financial_collections_trend.empty:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_financial_collections_trend["month"],
-            y=df_financial_collections_trend["actual_cr"],
-            name="Actual", line=dict(color=ORANGE, width=2.5),
-            mode="lines+markers", marker=dict(size=6, color=ORANGE)))
-        fig.add_trace(go.Scatter(
-            x=df_financial_collections_trend["month"],
-            y=df_financial_collections_trend["planned_cr"],
-            name="Planned", line=dict(color=NAVY, width=2.5, dash="dash"),
-            mode="lines+markers", marker=dict(size=6, color=NAVY)))
-        fig.update_layout(**{**PLOTLY_LAYOUT,
-            "yaxis_title": "₹ Cr", "height": 280,
-            "margin": dict(l=0, r=0, t=8, b=0)})
-        st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="foot">Anything in the workbook that does not reconcile is listed '
+    'above and on the dashboard\'s Data Quality tab. The generated file is fully '
+    'self-contained — no network access needed to open it.</div>',
+    unsafe_allow_html=True,
+)
